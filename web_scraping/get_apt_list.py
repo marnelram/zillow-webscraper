@@ -1,5 +1,9 @@
 import requests
+from bs4 import BeautifulSoup
 
+'''This python file makes html requests to the zillow websites with parameters for the apartment listings that you need to scrape from
+'''
+# define the headers for the request
 headers = {
     'authority': 'www.zillow.com',
     'accept': '*/*',
@@ -14,7 +18,58 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
 }
 
-response = requests.get(
-    'https://www.zillow.com/search/GetSearchPageState.htm?searchQueryState=%7B%22pagination%22%3A%7B%7D%2C%22mapBounds%22%3A%7B%22west%22%3A-122.47953414916992%2C%22east%22%3A-122.24161148071289%2C%22south%22%3A47.49296474129395%2C%22north%22%3A47.751905137332415%7D%2C%22isMapVisible%22%3Atrue%2C%22filterState%22%3A%7B%22isForSaleByAgent%22%3A%7B%22value%22%3Afalse%7D%2C%22isForSaleByOwner%22%3A%7B%22value%22%3Afalse%7D%2C%22isNewConstruction%22%3A%7B%22value%22%3Afalse%7D%2C%22isForSaleForeclosure%22%3A%7B%22value%22%3Afalse%7D%2C%22isComingSoon%22%3A%7B%22value%22%3Afalse%7D%2C%22isAuction%22%3A%7B%22value%22%3Afalse%7D%2C%22isForRent%22%3A%7B%22value%22%3Atrue%7D%2C%22isAllHomes%22%3A%7B%22value%22%3Atrue%7D%2C%22isMultiFamily%22%3A%7B%22value%22%3Afalse%7D%2C%22isManufactured%22%3A%7B%22value%22%3Afalse%7D%2C%22isLotLand%22%3A%7B%22value%22%3Afalse%7D%7D%2C%22isListVisible%22%3Atrue%2C%22mapZoom%22%3A12%7D&wants={%22cat1%22:[%22listResults%22,%22mapResults%22],%22regionResults%22:[%22regionResults%22]}&requestId=3',
-    headers=headers,
-)
+# define the parameters for the request such as the city, mapbounds, region and filter state
+city = 'seattle-wa'
+
+# number of pages of listings for your city
+pagenum = 20
+
+page = 1
+params = {
+    'mapBounds': {
+        'west': -122.465159,
+        'east': -122.224433,
+        'south': 47.491912,
+        'north': 47.734145
+    },
+    'regionSelection': [
+        {
+            'regionId': 16037,
+            'regionType': 6
+        }
+    ],
+    'filterState': {
+        'fsba': {'value': False},
+        'fsbo': {'value': False},
+        'nc': {'value': False},
+        'fore': {'value': False},
+        'cmsn': {'value': False},
+        'auc': {'value': False},
+        'fr': {'value': True},
+        'ah': {'value': True}
+    },
+    'pagination': {
+        'currentPage': page
+    }
+}
+
+# make a list of URLs to extract the html data
+urllist = []
+while page <= pagenum:
+    url = 'https://www.zillow.com/' + \
+        f'{city}/' + 'rentals/' + f'{page}_p/' + '?searchQueryState='
+    urllist.append(url)
+
+# get the html response each url in the url list and store it in a response list
+responselist = []
+for url in urllist:
+    response = requests.get(url, headers=headers, params=params)
+    responselist.append(response)
+    page += 1
+
+# parse the html responses through beautiful soup and make a soup list
+souplist = []
+for response in responselist:
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+print(responselist[1].content)
