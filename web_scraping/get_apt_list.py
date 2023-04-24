@@ -2,8 +2,14 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
-'''This python file makes html requests to the zillow websites with parameters for the apartment listings that you need to scrape from
+'''This python file makes html requests to the zillow websites with parameters for the apartment listings that you need to scrape from.  
+
+IMPORTANT:
+
 '''
+# make a list of responses to store the html requests
+response_list = []
+
 # define the headers for the request
 headers = {
     'authority': 'www.zillow.com',
@@ -20,70 +26,65 @@ headers = {
 }
 
 # define the parameters for the request such as the city, mapbounds, region and filter state
+
+# your city
 city = 'seattle-wa'
 
-# number of pages of listings for your city
-pagenum = 20
-page = 1
-# define the minimum and maximum monthy rent (to get all of the apartment listings in seattle multiple scraping sessions have to be made.  The maximum amount of listings shown for one search is about 800, or 20 pages of listings)
-rent_interval = [(0, 1699), (1700, 2199), (2200, 3199), (3200, 9000)]
+# define the rent interval to scrape from
+# IMPORTANT** for search results with number of listings above 800, you must create a filter to make sure the number of listings stay under 800.  In this case, limiting the minimum and maximum rent will keep the number of listings under 800.
+rent_intervals = [(0, 1699), (1700, 2199), (2200, 3199), (3200, 9000)]
 
-# make a list of parameters for each rent interval
-params_list = []
-for (min_rent, max_rent) in rent_interval:
-    params = {
-        'mapBounds': {
-            'west': -122.465159,
-            'east': -122.224433,
-            'south': 47.491912,
-            'north': 47.734145
-        },
-        'regionSelection': [
-            {
-                'regionId': 16037,
-                'regionType': 6
+# pagination for each search result
+max_pages = 20
+current_page = 1
+
+# iterate through each rent_interval filter
+for (min_rent, max_rent) in rent_intervals:
+
+    # iterate through each page for the current rent_interval filter
+    while current_page <= max_pages:
+        params = {
+            'mapBounds': {
+                'west': -122.465159,
+                'east': -122.224433,
+                'south': 47.491912,
+                'north': 47.734145
+            },
+            'regionSelection': [
+                {
+                    'regionId': 16037,
+                    'regionType': 6
+                }
+            ],
+            'filterState': {
+                'fsba': {'value': False},
+                'fsbo': {'value': False},
+                'nc': {'value': False},
+                'fore': {'value': False},
+                'cmsn': {'value': False},
+                'auc': {'value': False},
+                'fr': {'value': True},
+                'ah': {'value': True},
+                'mf': {'value': False},
+                'land': {'value': False},
+                'manu': {'value': False},
+
+                # monthy rent
+                'mp': {'max': max_rent, 'min': min_rent},
+            },
+            'pagination': {
+                'currentPage': current_page
             }
-        ],
-        'filterState': {
-            'fsba': {'value': False},
-            'fsbo': {'value': False},
-            'nc': {'value': False},
-            'fore': {'value': False},
-            'cmsn': {'value': False},
-            'auc': {'value': False},
-            'fr': {'value': True},
-            'ah': {'value': True},
-            'mf': {'value': False},
-            'land': {'value': False},
-            'manu': {'value': False},
-
-            # monthy rent
-            'mp': {'max': max_rent, 'min': min_rent},
-        },
-        'pagination': {
-            'currentPage': page
         }
-    }
-    params_list.append(params)
+        # store the html request for the current page of the current rent_interval
+        response = requests.get('https://www.zillow.com/' +
+                                f'{city}/' + 'rentals/' + f'{current_page}_p/' + '?searchQueryState=', headers=headers, params=params)
 
-# make a list of URLs to scrape
-url_list = []
-while page <= pagenum:
-    # for each page, make a url and add it to the url_list
-    url = 'https://www.zillow.com/' + \
-        f'{city}/' + 'rentals/' + f'{page}_p/' + '?searchQueryState='
-    url_list.append(url)
-    # increase the page counter
-    page += 1
-
-# make a list of responses from each html request
-response_list = []
-# iterate through each rent interval
-for params in params_list:
-    # get the html response each url in the url list and store it in a response list
-    for url in url_list:
-        response = requests.get(url, headers=headers, params=params)
+        # append the response to the response_list
         response_list.append(response)
+
+    # reset the page counter
+    current_page = 1
 
 # parse the html responses through beautiful soup and make a soup list
 souplist = []
@@ -92,4 +93,6 @@ for response in response_list:
     souplist.append(soup)
 
 # parse the beautiful soup into a dataframe
+
+# the html document has a JSON doc at the bottom.  Parse the JSON doc, gather the information from "cat1" to "total result count"
 print(souplist[1].prettify())

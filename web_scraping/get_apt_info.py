@@ -21,7 +21,7 @@ paramlist = []
 for index, row in df.iterrows():
 
     # for each row in the dataframe, set the detail Url, building key and lotId
-    detailUrl = row['detailUrl']
+    detail_Url = row['detailUrl']
     buildingkey = row['building_keys']
     lotId = row['lotId']
     headers = {
@@ -33,8 +33,8 @@ for index, row in df.iterrows():
         'dnt': '1',
         'origin': 'https://www.zillow.com',
 
-        # set the referer to the 'origin' + 'detail Url' value, example: 'https://www.zillow.com/b/arthouse-seattle-wa-5Yy9f4/'
-        'referer': 'https://www.zillow.com' + detailUrl,
+        # set the referer to the 'origin' + 'detail_Url' value, example: 'https://www.zillow.com/b/arthouse-seattle-wa-5Yy9f4/'
+        'referer': 'https://www.zillow.com' + detail_Url,
         'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
         'sec-ch-ua-mobile': '?1',
         'sec-ch-ua-platform': '"Android"',
