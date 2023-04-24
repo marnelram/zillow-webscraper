@@ -66,29 +66,24 @@ for (min_rent, max_rent) in rent_interval:
     }
     params_list.append(params)
 
-# make a list of URLs to extract the html data
+# make a list of URLs to scrape
 url_list = []
+while page <= pagenum:
+    # for each page, make a url and add it to the url_list
+    url = 'https://www.zillow.com/' + \
+        f'{city}/' + 'rentals/' + f'{page}_p/' + '?searchQueryState='
+    url_list.append(url)
+    # increase the page counter
+    page += 1
+
+# make a list of responses from each html request
+response_list = []
 # iterate through each rent interval
 for params in params_list:
-
-    # iterate trough each page for each rent interval
-    while page <= pagenum:
-
-        # for each page, make a url and add it to the url_list
-        url = 'https://www.zillow.com/' + \
-            f'{city}/' + 'rentals/' + f'{page}_p/' + '?searchQueryState='
-        url_list.append(url)
-
-        # increase the page counter
-        page += 1
-    # reset the page counter
-    page = 1
-
-# get the html response each url in the url list and store it in a response list
-response_list = []
-for url in url_list:
-    response = requests.get(url, headers=headers, params=params)
-    response_list.append(response)
+    # get the html response each url in the url list and store it in a response list
+    for url in url_list:
+        response = requests.get(url, headers=headers, params=params)
+        response_list.append(response)
 
 # parse the html responses through beautiful soup and make a soup list
 souplist = []
