@@ -12,7 +12,7 @@ example: %7B%22mapBounds%22%3A%7B%22west%22%3A-122.465159%2C%22east%22%3A-122.22
 3. then pass this as the encoded json to return a decoded json object
 '''
 
-url_encoded_json = '%7B%22mapBounds%22%3A%7B%22west%22%3A-122.465159%2C%22east%22%3A-122.224433%2C%22south%22%3A47.491912%2C%22north%22%3A47.734145%7D%2C%22regionSelection%22%3A%5B%7B%22regionId%22%3A16037%2C%22regionType%22%3A6%7D%5D%2C%22filterState%22%3A%7B%22fsba%22%3A%7B%22value%22%3Afalse%7D%2C%22fsbo%22%3A%7B%22value%22%3Afalse%7D%2C%22nc%22%3A%7B%22value%22%3Afalse%7D%2C%22fore%22%3A%7B%22value%22%3Afalse%7D%2C%22cmsn%22%3A%7B%22value%22%3Afalse%7D%2C%22auc%22%3A%7B%22value%22%3Afalse%7D%2C%22fr%22%3A%7B%22value%22%3Atrue%7D%2C%22ah%22%3A%7B%22value%22%3Atrue%7D%7D%2C%22pagination%22%3A%7B%22currentPage%22%3A9%7D%7D'
+url_encoded_json = '%7B"pagination"%3A%7B%7D%2C"mapBounds"%3A%7B"north"%3A47.81096392569374%2C"south"%3A47.36731519862966%2C"east"%3A-121.84965815488289%2C"west"%3A-123.04167475644539%7D%2C"regionSelection"%3A%5B%7B"regionId"%3A16037%2C"regionType"%3A6%7D%5D%2C"isMapVisible"%3Atrue%2C"filterState"%3A%7B"fsba"%3A%7B"value"%3Afalse%7D%2C"fsbo"%3A%7B"value"%3Afalse%7D%2C"nc"%3A%7B"value"%3Afalse%7D%2C"cmsn"%3A%7B"value"%3Afalse%7D%2C"auc"%3A%7B"value"%3Afalse%7D%2C"fore"%3A%7B"value"%3Afalse%7D%2C"fr"%3A%7B"value"%3Atrue%7D%2C"mf"%3A%7B"value"%3Afalse%7D%2C"land"%3A%7B"value"%3Afalse%7D%2C"manu"%3A%7B"value"%3Afalse%7D%2C"mp"%3A%7B"max"%3A2800%2C"min"%3A2200%7D%2C"price"%3A%7B"max"%3A559020%2C"min"%3A439230%7D%7D%2C"isListVisible"%3Atrue%7D'
 
 decoded_json = urllib.parse.unquote(url_encoded_json)
 json_object = json.loads(decoded_json)
