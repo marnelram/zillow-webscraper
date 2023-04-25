@@ -1,8 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
+import json
 import pandas as pd
 
-'''This python file makes html requests to the zillow websites with parameters for the apartment listings that you need to scrape from.  
+'''This python file makes html requests to the zillow back-end server via the zillow website with parameters for the apartment listings that you need to scrape from.  The requests are recieved in a JSON format, and is parsed to extract the apartment's building key, lotId and the detailUrl to scrape more information.
 
 IMPORTANT:
 
@@ -86,6 +87,9 @@ for (min_rent, max_rent) in rent_intervals:
     # reset the page counter
     current_page = 1
 
+# parse the JSON doc
+
+"""
 # parse the html responses through beautiful soup and make a soup list
 souplist = []
 for response in response_list:
@@ -96,3 +100,4 @@ for response in response_list:
 
 # the html document has a JSON doc at the bottom.  Parse the JSON doc, gather the information from "cat1" to "total result count"
 print(souplist[1].prettify())
+"""
