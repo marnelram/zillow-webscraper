@@ -45,7 +45,8 @@ for index, row in df.iterrows():
     }
 
     # set the building key and the lotId to the rows building key and lotId
-    data = '{"operationName":"BuildingQuery","variables":{"buildingKey":f{buildingkey},"cache":false,"latitude":null,"longitude":null,"lotId":f{lotId},"update":false},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"ad04c9e688ad8981f898c335a89d09f9778804786b2211073ee12ff80e530a63"}}}'
+    # "buildingKey":f{buildingkey}
+    data = '{"operationName":"BuildingQuery","variables":{"cache":false,"latitude":null,"longitude":null,"lotId":f{lotId},"update":false},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"ad04c9e688ad8981f898c335a89d09f9778804786b2211073ee12ff80e530a63"}}}'
 
 # loop through the paramlist and make a response list
 responselist = []
