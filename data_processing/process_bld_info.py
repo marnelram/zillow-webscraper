@@ -27,6 +27,8 @@ def keep_keys(dict, wanted_keys_list):
             processed_dict.update({key: value})
     return processed_dict
 
+# **working on changes
+
 
 def comb_subset_dict(subset_dict, superset_dict, subset_key, wanted_keys, del_subset):
     '''utility function that combines the subset and superset dicts together and keeps the wanted keys in the subset
@@ -153,6 +155,8 @@ def process_bld_info(bld_info_dict):
     # processed_bld_info_dict = add_bld_att(bld_info_dict)
 
     return processed_bld_info_dict
+
+# working on changes
 
 
 def split_floor_plans(bld_info_dict):
