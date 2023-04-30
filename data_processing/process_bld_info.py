@@ -19,88 +19,86 @@ with open('C:/Projects/Housing_Price_Prediction/data_processing/raw_bld_info.jso
 bld_info_list = json.loads(raw_bld_info_list)
 
 
-def keep_keys(dict, wanted_keys_list):
+def keep_keys(dict: dict, wanted_keys: list):
     '''utility function to remove unwanted keys.  Takes a dict and a list of wanted keys as input and returns the processed dict'''
     processed_dict = {}
     for key, value in dict.items():
-        if key in wanted_keys_list:
+        if key in wanted_keys:
             processed_dict.update({key: value})
     return processed_dict
 
-# **working on changes
 
-
-def comb_subset_dict(subset_dict, superset_dict, subset_key, wanted_keys, del_subset):
+def comb_subset_dict(subset: dict, superset: dict, subset_key: str, wanted_keys: list):
     '''utility function that combines the subset and superset dicts together and keeps the wanted keys in the subset
     '''
+    # keep the wanted keys in the subset
+    processed_subset = keep_keys(
+        subset, wanted_keys)
 
-    processed_subset_dict = keep_keys(
-        subset_dict, wanted_keys)
+    # add the processed subset to the superset
+    superset.update(processed_subset)
 
-    # add the subset dictionary to the superset dictionary
-    superset_dict.update(processed_subset_dict)
+    # delete the subset
+    if subset_key in superset.keys():
+        del superset[subset_key]
 
-    # if the subset needs to be deleted, then delete the subset dictionary
-    if del_subset:
-        if subset_key in superset_dict.keys():
-            del superset_dict[subset_key]
+    return superset
 
-    return superset_dict
 # defines functions to process each key (column) of each building dictionary (row)
 
 
-def process_address(address_dict):
+def process_address(address: dict):
     '''returns the address from the address dictionary.  Concatenates the street address, city, state and zip codes together.
     '''
-    address = ""
+    add = ""
     wanted_keys = ['streetAddress', 'city', 'state', 'zipcode']
-    processed_address_dict = keep_keys(address_dict, wanted_keys)
-    for key, value in processed_address_dict.items():
-        address = address + value + " "
-    return address[0:-1]
+    processed_address = keep_keys(address, wanted_keys)
+    for key, value in processed_address.items():
+        add = add + value + " "
+    return add[0:-1]
 
 # ***FIX AMENITYSUMMARY WHEN NEW DATA COMES IN
 
 
-def process_amenitySummary(amenitySummary_dict):
+def process_amenitySummary(amenitySummary: dict):
     '''processes the amenities of the amenitySummary dictionary.  Currently there are 3 keys in this dictionary: building, __typename, and laundry.  Check later if there are other keys when parsing more listings
     '''
-    amenitySummary = None
-    for key, value in amenitySummary_dict.items():
+    amen_summary = None
+    for key, value in amenitySummary.items():
         # **CHECK IN THE FUTURE IF THERE ARE MORE BUILDING AMENITIES
         if key == 'laundry':
-            amenitySummary = value
-    return amenitySummary
+            amen_summary = value
+    return amen_summary
 
 
-def process_walkScore(walkScore_dict):
+def get_walkScore(walkScore: dict):
     '''returns the walk score from the walk score dictionary.'''
     walk_score = None
-    for key, value in walkScore_dict.items():
+    for key, value in walkScore.items():
         if key == 'walkscore':
             walk_score = value
     return walk_score
 
 
-def process_transitScore(transitScore_dict):
+def get_transitScore(transitScore: dict):
     '''returns the transit score from the transit score dictionary.'''
     transit_score = None
-    for key, value in transitScore_dict.items():
+    for key, value in transitScore.items():
         if key == 'transit_score':
             transit_score = value
     return transit_score
 
 
-def process_bikeScore(bikeScore_dict):
+def get_bikeScore(bikeScore: dict):
     '''returns the bike score from the bike score dictionary.'''
     bike_score = None
-    for key, value in bikeScore_dict.items():
+    for key, value in bikeScore.items():
         if key == 'bikescore':
             bike_score = value
     return bike_score
 
 
-def add_bld_att(bld_info_dict):
+def add_bld_att(bld_info: dict):
     '''returns a processed building dictionary that includes the building attributes from the buildingAttributes dictionary.  This function keeps all keys in the wanted_keys list and discards the rest.
     '''
     # remove unwanted keys
@@ -109,13 +107,13 @@ def add_bld_att(bld_info_dict):
                    ]
 
     # combine the buildingAttribute dictionary with the building dictionary
-    processed_bld_info_dict = comb_subset_dict(bld_info_dict['buildingAttributes'],
-                                               bld_info_dict, 'buildingAttributes', wanted_keys, del_subset=True)
+    processed_bld_info = comb_subset_dict(bld_info['buildingAttributes'],
+                                          bld_info, 'buildingAttributes', wanted_keys)
 
-    return processed_bld_info_dict
+    return processed_bld_info
 
 
-def process_bld_info(bld_info_dict):
+def process_bld_info(bld_info: dict):
     '''returns a processed building dictionary.  When processing the building dictionary, 6 steps are performed:
     1. processes the building address
     - floorPlans
@@ -129,69 +127,67 @@ def process_bld_info(bld_info_dict):
     - deailed Pet Policy
     '''
     # process the bld_info_dict
-    processed_bld_info_dict = bld_info_dict
+    processed_bld_info = bld_info
 
     # process the address key
-    processed_bld_info_dict['address'] = process_address(
-        bld_info_dict['address'])
+    processed_bld_info['address'] = process_address(
+        bld_info['address'])
 
-    # process the walkingScore key
-    processed_bld_info_dict['walkScore'] = process_walkScore(
-        bld_info_dict['walkScore'])
+    # get the building's walking score from the walkScore key
+    processed_bld_info['walkScore'] = get_walkScore(
+        bld_info['walkScore'])
 
     # process the transitScore key
-    processed_bld_info_dict['transitScore'] = process_transitScore(
-        bld_info_dict['transitScore'])
+    processed_bld_info['transitScore'] = get_transitScore(
+        bld_info['transitScore'])
 
     # process the bikeScore key
-    processed_bld_info_dict['bikeScore'] = process_bikeScore(
-        bld_info_dict['bikeScore'])
+    processed_bld_info['bikeScore'] = get_bikeScore(
+        bld_info['bikeScore'])
 
     # process the amenitySummary key
-    processed_bld_info_dict['amenitySummary'] = process_amenitySummary(
-        bld_info_dict['amenitySummary'])
+    processed_bld_info['amenitySummary'] = process_amenitySummary(
+        bld_info['amenitySummary'])
 
     # split the building attributes from the buildingAttributes key
     # processed_bld_info_dict = add_bld_att(bld_info_dict)
 
-    return processed_bld_info_dict
-
-# working on changes
+    return processed_bld_info
 
 
-def split_floor_plans(bld_info_dict):
+def split_floor_plans(bld_info: dict):
     '''returns a list of processed building dictionies that includes the different floor plans from the floorPlan dictionary.  This function keeps all keys in the wanted_keys list and discards the rest.
     '''
-    processed_floor_plan_list = []
+    processed_floor_plan = []
     wanted_keys = ['minPrice', 'maxPrice', 'units', 'baths', 'beds',
                    'floorPlanUnitPhotos', 'name', 'photos', 'sqft', 'description']
 
     # iterate through each floor plan in the 'floorPlans' key
-    for floorPlan_dict in bld_info_dict['floorPlans']:
+    for floor_plan in bld_info['floorPlans']:
 
-        # combine the floorPlan_dict with the bld_info_dict
-        processed_floorPlans_dict = comb_subset_dict(
-            floorPlan_dict, bld_info_dict, 'floorPlans', wanted_keys, del_subset=False)
+        # combine the floorPlan_dict
+        processed_floorPlans = comb_subset_dict(
+            floor_plan, bld_info, 'floorPlans', wanted_keys)
 
         # apend the result to the processed_floor_plans_list
-        processed_floor_plan_list.append(processed_floorPlans_dict)
+        processed_floor_plan.append(processed_floorPlans)
 
-    return processed_floor_plan_list
+    return processed_floor_plan
 
 
-def get_unit_info_list(bld_info_dict):
+def get_unit_info_list(bld_info: dict):
     '''returns a list of apartment dictionies with information about the building, floor plan, and specific unit of the apartment for each floor plan and unit in the building dictionary. processes the building dictionary in 2 steps:
     1. splits the floor plans from each building
     2. splits the units from each floor plan
     '''
     # split the floor plans from each building
-    floor_plans_info_list = split_floor_plans(bld_info_dict)
+    floor_plans_info = split_floor_plans(bld_info)
 
     # append the new apartment dictionaries created by the clean_floorPlans() function to the apt_info_list
     # apt_info_list = clean_floorPlans(processed_bld_info_dict)
     # for apt in apt_info_list:
     # processed_apt_info_list.append(apt)
-    return floor_plans_info_list
+    return floor_plans_info
 
 # maybe make `wanted_floor_plan_keys` a parameter for the function?
 
@@ -256,6 +252,7 @@ def clean_floorPlans(building_info_dict):
 
 
 processed_info_list = []
+processed_bld_info_list = []
 
 # iterate through each building dictionary and processes the data
 for bld_info_dict in bld_info_list:
@@ -263,7 +260,12 @@ for bld_info_dict in bld_info_list:
     # process the building related keys
     processed_bld_info_dict = process_bld_info(bld_info_dict)
 
+    # test
+    processed_bld_info_list.append(processed_bld_info_dict)
+
     # gets the information for each unit in the building (bld_info_dict)
-    unit_info_list = get_unit_info_list(processed_bld_info_dict)
-    for unit_info_dict in unit_info_list:
-        processed_info_list.append(unit_info_dict)
+    # unit_info_list = get_unit_info_list(processed_bld_info_dict)
+    # for unit_info_dict in unit_info_list:
+    # processed_info_list.append(unit_info_dict)
+
+print(json.dumps(processed_bld_info_list[0], indent=5))
