@@ -5,8 +5,7 @@ import pandas as pd
 
 '''This python file makes html requests to the zillow back-end server via the zillow website with parameters for the apartment listings that you need to scrape from.  The requests are recieved in a JSON format, and is parsed to extract the apartment's building key, lotId and the detailUrl to scrape more information.
 
-IMPORTANT:
-
+IMPORTANT** for search results with number of listings above 800, you must create a filter to make sure the number of listings stay under 800. Otherwise not all of the listings of the search criteria will be scraped
 '''
 # make a list of responses to store the html requests
 response_list = []
