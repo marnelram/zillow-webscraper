@@ -28,12 +28,12 @@ def keep_keys(dict: dict, wanted_keys: list):
     return processed_dict
 
 
-def comb_subset_dict(subset: dict, superset: dict, subset_key: str, wanted_keys: list):
-    '''utility function that combines the subset and superset dicts together and keeps the wanted keys in the subset
+def inherit_subset_dict(superset: dict, subset: dict, subset_key: str, sub_keys: list):
+    '''utility function that returns the superset dictionary after inheriting the information from the subset dictionary. The subset keeps the keys in the key list before being inherited by the supsert dictionary.
     '''
     # keep the wanted keys in the subset
     processed_subset = keep_keys(
-        subset, wanted_keys)
+        subset, sub_keys)
 
     # add the processed subset to the superset
     superset.update(processed_subset)
@@ -44,18 +44,13 @@ def comb_subset_dict(subset: dict, superset: dict, subset_key: str, wanted_keys:
 
     return superset
 
-# defines functions to process each key (column) of each building dictionary (row)
-
 
 def process_address(address: dict):
     '''returns the address from the address dictionary.  Concatenates the street address, city, state and zip codes together.
     '''
-    add = ""
-    wanted_keys = ['streetAddress', 'city', 'state', 'zipcode']
-    processed_address = keep_keys(address, wanted_keys)
-    for key, value in processed_address.items():
-        add = add + value + " "
-    return add[0:-1]
+    add = address['streetAddress'] + " " + address['city'] + \
+        " " + address['state'] + " " + address['zipcode']
+    return add
 
 # ***FIX AMENITYSUMMARY WHEN NEW DATA COMES IN
 
@@ -63,52 +58,21 @@ def process_address(address: dict):
 def process_amenitySummary(amenitySummary: dict):
     '''processes the amenities of the amenitySummary dictionary.  Currently there are 3 keys in this dictionary: building, __typename, and laundry.  Check later if there are other keys when parsing more listings
     '''
-    amen_summary = None
-    for key, value in amenitySummary.items():
-        # **CHECK IN THE FUTURE IF THERE ARE MORE BUILDING AMENITIES
-        if key == 'laundry':
-            amen_summary = value
+    amen_summary = amenitySummary['laundry']
     return amen_summary
-
-
-def get_walkScore(walkScore: dict):
-    '''returns the walk score from the walk score dictionary.'''
-    walk_score = None
-    for key, value in walkScore.items():
-        if key == 'walkscore':
-            walk_score = value
-    return walk_score
-
-
-def get_transitScore(transitScore: dict):
-    '''returns the transit score from the transit score dictionary.'''
-    transit_score = None
-    for key, value in transitScore.items():
-        if key == 'transit_score':
-            transit_score = value
-    return transit_score
-
-
-def get_bikeScore(bikeScore: dict):
-    '''returns the bike score from the bike score dictionary.'''
-    bike_score = None
-    for key, value in bikeScore.items():
-        if key == 'bikescore':
-            bike_score = value
-    return bike_score
 
 
 def add_bld_att(bld_info: dict):
     '''returns a processed building dictionary that includes the building attributes from the buildingAttributes dictionary.  This function keeps all keys in the wanted_keys list and discards the rest.
     '''
-    # remove unwanted keys
-    wanted_keys = ['hasSharedLaundry', 'airConditioning', 'appliances', 'parkingTypes', 'detailedParkingPolicies', 'outdoorCommonAreas', 'hasBarbecue', 'heatingSource', 'detailedPetPolicy', 'petPolicies', 'hasElevator', '__typename', 'communityRooms', 'sportsCourts', 'hasBicycleStorage', 'hasGuestSuite', 'hasStorage', 'hasPetPark', 'hasTwentyFourHourMaintenance', 'hasDryCleaningDropOff', 'hasOnlineRentPayment', 'hasOnlineMaintenancePortal', 'hasOnsiteManagement', 'hasPackageService',
-                   'hasValetTrash', 'hasSpanishSpeakingStaff', 'securityTypes', 'viewType', 'hasHotTub', 'hasSauna', 'hasSwimmingPool', 'hasAssistedLiving', 'hasDisabledAccess', 'floorCoverings', 'communicationTypes', 'hasCeilingFan', 'hasFireplace', 'hasPatioBalcony', 'isFurnished', 'customAmenities', 'parkingDescription', 'petPolicyDescription', 'parkingRentDescription', 'isSmokeFree', 'applicationFee', 'administrativeFee', 'depositFeeMin', 'depositFeeMax', 'leaseTerms', 'utilitiesIncluded', 'leaseLengths'
-                   ]
+    # keep these keys from the building attribute dictionary
+    keys = ['hasSharedLaundry', 'airConditioning', 'appliances', 'parkingTypes', 'detailedParkingPolicies', 'outdoorCommonAreas', 'hasBarbecue', 'heatingSource', 'detailedPetPolicy', 'petPolicies', 'hasElevator', '__typename', 'communityRooms', 'sportsCourts', 'hasBicycleStorage', 'hasGuestSuite', 'hasStorage', 'hasPetPark', 'hasTwentyFourHourMaintenance', 'hasDryCleaningDropOff', 'hasOnlineRentPayment', 'hasOnlineMaintenancePortal', 'hasOnsiteManagement', 'hasPackageService',
+            'hasValetTrash', 'hasSpanishSpeakingStaff', 'securityTypes', 'viewType', 'hasHotTub', 'hasSauna', 'hasSwimmingPool', 'hasAssistedLiving', 'hasDisabledAccess', 'floorCoverings', 'communicationTypes', 'hasCeilingFan', 'hasFireplace', 'hasPatioBalcony', 'isFurnished', 'customAmenities', 'parkingDescription', 'petPolicyDescription', 'parkingRentDescription', 'isSmokeFree', 'applicationFee', 'administrativeFee', 'depositFeeMin', 'depositFeeMax', 'leaseTerms', 'utilitiesIncluded', 'leaseLengths'
+            ]
 
-    # combine the buildingAttribute dictionary with the building dictionary
-    processed_bld_info = comb_subset_dict(bld_info['buildingAttributes'],
-                                          bld_info, 'buildingAttributes', wanted_keys)
+    # inherit the buildingAttribute dictionary and add it to the building dictionary
+    processed_bld_info = inherit_subset_dict(
+        bld_info, bld_info['buildingAttributes'], 'buildingAttributes', keys)
 
     return processed_bld_info
 
@@ -116,7 +80,6 @@ def add_bld_att(bld_info: dict):
 def process_bld_info(bld_info: dict):
     '''returns a processed building dictionary.  When processing the building dictionary, 6 steps are performed:
     1. processes the building address
-    - floorPlans
     2. process the building attributes
     2. processes the amenity summary
     - assignedSchools
@@ -134,16 +97,13 @@ def process_bld_info(bld_info: dict):
         bld_info['address'])
 
     # get the building's walking score from the walkScore key
-    processed_bld_info['walkScore'] = get_walkScore(
-        bld_info['walkScore'])
+    processed_bld_info['walkScore'] = bld_info['walkScore']['walkscore']
 
-    # process the transitScore key
-    processed_bld_info['transitScore'] = get_transitScore(
-        bld_info['transitScore'])
+    # get the building's transit score from the transitScore key
+    processed_bld_info['transitScore'] = bld_info['transitScore']['transit_score']
 
-    # process the bikeScore key
-    processed_bld_info['bikeScore'] = get_bikeScore(
-        bld_info['bikeScore'])
+    # get the building's bike score from the bikeScore key
+    processed_bld_info['bikeScore'] = bld_info['bikeScore']['bikescore']
 
     # process the amenitySummary key
     processed_bld_info['amenitySummary'] = process_amenitySummary(
