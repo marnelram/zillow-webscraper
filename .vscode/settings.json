@@ -1,8 +1,34 @@
 {
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter"
-  },
-  "python.formatting.provider": "black",
-  "python.linting.pylintEnabled": true,
-  "python.linting.enabled": true
+    "editor.tabSize": 4,
+    "python.linting.pylintEnabled": true,
+    "python.formatting.provider": "black",
+    "python.linting.pylintArgs": [
+        "--rcfile=C:/python-projects/.vscode/pylintrc",
+        "--load-plugins",
+        "pylint_quotes",
+        "pylint.extensions.docparams"
+    ],
+    "python.formatting.blackArgs": [
+        "--line-length=100",
+        "--py36",
+        "--exclude=venv,.venv",
+        "--quiet"
+    ],
+    "python.formatting.autopep8Args": [
+        "--ignore=E501"
+    ],
+    "python.analysis.typeCheckingMode": "off",
+    "python.linting.enabled": true,
+    "python.linting.maxNumberOfProblems": 100,
+    "python.linting.flake8Enabled": false,
+    "python.linting.flake8Args": [
+        "--max-line-length=100"
+    ],
+    "python.linting.mypyEnabled": false,
+    "python.linting.mypyArgs": [
+        "--ignore-missing-imports"
+    ],
+    "editor.formatOnSave": false,
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
 }

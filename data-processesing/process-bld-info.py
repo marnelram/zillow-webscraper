@@ -7,21 +7,28 @@
 6. walkScore
 7. transitScore
 8. bikeScore
-9. amenityDetails
+9. amenityDetailsF
 10. detailedPetPolicy
 """
+
 import json
 
 # open the building information and store it as bld_info_list
-with open(
-    "C:/Projects/Housing_Price_Prediction/data_processing/raw_bld_info.json", "r"
-) as f:
+with open("raw-bld-info.json", "r", encoding="utf-8") as f:
     raw_bld_info = f.read()
 bld_info = json.loads(raw_bld_info)
 
 
 def filter_dict(source_dict: dict, keys: list):
-    """returns a processed dictionary that only has the source dictionary keys from the keys list."""
+    """filters a dictionary and removes keys not in the keys list.
+
+    Args:
+        source_dict (dict): the dictionary to filter
+        keys (list): list of keys to keep in the source dictionary
+
+    Returns:
+        dict: returns a processed dictionary that only has the source dictionary keys from the keys list.
+    """
     processed_dict = {}
 
     # add the specified keys to the processed dictionary
@@ -80,7 +87,7 @@ def extract_subset_dicts(source_dict: dict, subset_key: str, sub_keys: list):
 
 def process_address(address: dict):
     """returns the address from the address dictionary.  Concatenates the street address, city, state and zip codes together."""
-    add = (
+    return (
         address["streetAddress"]
         + " "
         + address["city"]
@@ -89,7 +96,6 @@ def process_address(address: dict):
         + " "
         + address["zipcode"]
     )
-    return add
 
 
 # ***FIX AMENITYSUMMARY WHEN NEW DATA COMES IN
@@ -235,12 +241,8 @@ def get_units_from_plans(floor_plan: dict):
     units = []
     unit_keys = ["unitNumber", "zpid", "availableFrom", "price"]
 
-    # iterate through each unit in the 'units' key
     for unit in floor_plan["units"]:
-        # inherit the unit dict and keep the unit's keys
         processed_unit = inherit_subset_dict(floor_plan, unit, "units", unit_keys)
-
-        # append the result to the units list
         units.append(processed_unit)
 
     return units
