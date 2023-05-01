@@ -20,58 +20,73 @@ bld_info = json.loads(raw_bld_info)
 
 
 def filter_dict(source_dict: dict, keys: list):
+    # sourcery skip: dict-comprehension, inline-immediately-returned-variable, simplify-dictionary-update
     """filters a dictionary and removes keys not in the keys list.
-
-    Args:
-        source_dict (dict): the dictionary to filter
-        keys (list): list of keys to keep in the source dictionary
-
-    Returns:
-        dict: returns a processed dictionary that only has the source dictionary keys from the keys list.
     """
     processed_dict = {}
-
-    # add the specified keys to the processed dictionary
     for key, value in source_dict.items():
         if key in keys:
-            processed_dict.update({key: value})
-
+            processed_dict[key] = value
     return processed_dict
 
 
 def inherit_subset_dict(superset: dict, subset: dict, subset_key: str, sub_keys: list):
-    """returns a processed dictionary after inheriting the information from the subset dictionary. The subset keeps the keys in the sub_key list before being inherited by the supsert dictionary."""
-    # copy the source dictionary
+    """Inherit the keys from the subset in the key list into the superset.
+
+    Args:
+        superset (dict): the superset dict that contains the subset
+        subset (dict): the subset dict that is contained by the superset
+        subset_key (str): the key of the subset dictionary
+        sub_keys (list): a list of subset keys to keep
+
+    Returns:
+        dict: A dictionary that includes inherited heys from the subset specified by sub_keys
+    """
     processed_dict = superset.copy()
-
-    # keep the wanted keys in the subset
     processed_subset = filter_dict(subset, sub_keys)
-
-    # add the processed subset to the superset
     processed_dict.update(processed_subset)
-
-    # delete the subset
-    if subset_key in processed_dict.keys():
+    if subset_key in processed_dict:
         del processed_dict[subset_key]
-
     return processed_dict
 
 
-def split_list_of_dicts(superset: dict, subset_key: str, sub_keys: list):
-    """Extracts a list of dictionaries from the list of subset dictionaries.  Each element of the list contains keys from both the superset dictionary and the corresponding subset dictionary."""
-    superset_dicts = []
+def split_list_of_subset_dicts(superset: dict, subset_key: str, sub_keys: list):
+    """Extract a list of dictionaries from a list of subset dictionaries with the specified keys.
 
-    # iterate through each element in the list of values of the subset key
+    Each element of the list contains keys from both the superset dictionary and the corresponding subset dictionary.  The format of the superset should be similar to what is shown below:
+
+    "superset": {
+            "superset_key_1": "superset_value_1",
+            "subset_key": [
+                {
+                    "subset_dict[0]_key_1": "subset_dict[0]_value_1",
+                    "subset_dict[0]_key_2": "subset_dict[0]_value_2"
+                    ...
+                },
+                {
+                    "subset_dict[1]_key_1": "subset_dict[1]_value_1",
+                    ...
+                },
+            ]
+            "superset_key_2": "superset_value_2",
+            ...
+        }
+
+    Args:
+        superset (dict): the superset dictionary that contains the subset.
+        subset_key (str): the key in the superset dictionary that maps to a list of subset dictionaries.
+        sub_keys (list): list of subset keys to keep.
+
+    Returns:
+        list: list of dictionaries that include the inherited keys specified by 'sub_keys'.  The format of the returned list
+    """
+    processed_dicts = []
     for subset_dict in superset[subset_key]:
-        # inherit the subset dictionary keys into the processed superset dictionary
         processed_superset = inherit_subset_dict(
             superset, subset_dict, subset_key, sub_keys
         )
-
-        # append the result to the superset dictionary list
-        superset_dicts.append(processed_superset)
-
-    return superset_dicts
+        processed_dicts.append(processed_superset)
+    return processed_dicts
 
 
 def extract_subset_dicts(source_dict: dict, subset_key: str, sub_keys: list):

@@ -28,7 +28,10 @@
     "python.linting.mypyArgs": [
         "--ignore-missing-imports"
     ],
-    "editor.formatOnSave": false,
+    "editor.formatOnSave": true,
     "files.insertFinalNewline": true,
     "files.trimTrailingWhitespace": true,
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnPaste": true,
+    "notebook.formatOnSave.enabled": true,
 }
