@@ -3,11 +3,8 @@
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnPaste": true,
     "editor.wordWrap": "on",
-
     "python.linting.pylintEnabled": true,
     "python.formatting.provider": "black",
-    "python.linting.pylintPath": "C:/pythonvenv/web_scraping/Lib/site-packages/pylint",
-    "python.formatting.blackPath": "C:/pythonvenv/web_scraping/Lib/site-packages/black",
     "python.linting.pylintArgs": [
         "--rcfile=C:/python-projects/.vscode/pylintrc",
         "--load-plugins",
@@ -22,7 +19,7 @@
     "python.linting.maxNumberOfProblems": 100,
     "python.linting.flake8Enabled": false,
     "python.linting.flake8Args": [
-        "--max-line-length=100"
+        "--max-line-length=80"
     ],
     "python.linting.mypyEnabled": false,
     "python.linting.mypyArgs": [
@@ -34,7 +31,7 @@
     "notebook.formatOnSave.enabled": true,
     "python.formatting.blackArgs": [
         "--line-length",
-        "100"
+        "80"
     ],
     "autoDocstring.includeExtendedSummary": true,
 }
