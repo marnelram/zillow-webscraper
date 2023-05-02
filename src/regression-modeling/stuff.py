@@ -17,10 +17,10 @@ sw = (south, west)
 se = (south, east)
 
 # Get the zip codes for each coordinate
-nw_zip = geolocator.reverse(nw).raw['address']['postcode']
-ne_zip = geolocator.reverse(ne).raw['address']['postcode']
-sw_zip = geolocator.reverse(sw).raw['address']['postcode']
-se_zip = geolocator.reverse(se).raw['address']['postcode']
+nw_zip = geolocator.reverse(nw).raw["address"]["postcode"]
+ne_zip = geolocator.reverse(ne).raw["address"]["postcode"]
+sw_zip = geolocator.reverse(sw).raw["address"]["postcode"]
+se_zip = geolocator.reverse(se).raw["address"]["postcode"]
 
 # Print the zip codes
 print("Zip codes for the search bounds:")

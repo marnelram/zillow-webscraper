@@ -1,15 +1,4 @@
-"""This file takes as input the raw building information from the raw_bld_info.json file and outputs a dataframe object to use in analysis.  processes it to remove unnecessary keys.  Currently it parses the following keys from the :
-1. address
-2. floorPlans
-3. buildingAttributes
-4. amenitySummary
-5. assignedSchools
-6. walkScore
-7. transitScore
-8. bikeScore
-9. amenityDetailsF
-10. detailedPetPolicy
-"""
+"""This script processes the raw building information and stores the processed information in a json file."""
 
 import json
 
@@ -19,28 +8,33 @@ with open("raw-bld-info.json", "r", encoding="utf-8") as f:
 bld_info = json.loads(raw_bld_info)
 
 
-def filter_dict(source_dict: dict, keys: list):
-    # sourcery skip: dict-comprehension, inline-immediately-returned-variable, simplify-dictionary-update
-    """filters a dictionary and removes keys not in the keys list.
-    """
+def filter_dict(source_dict: dict, filter_keys: list) -> dict:
+    """filters a dictionary and removes keys not in the filter keys list."""
     processed_dict = {}
     for key, value in source_dict.items():
-        if key in keys:
+        if key in filter_keys:
             processed_dict[key] = value
     return processed_dict
 
 
-def inherit_subset_dict(superset: dict, subset: dict, subset_key: str, sub_keys: list):
+def inherit_subset_dict(
+    superset: dict, subset: dict, subset_key: str, sub_keys: list
+) -> dict:
     """Inherit the keys from the subset in the key list into the superset.
 
     Args:
-        superset (dict): the superset dict that contains the subset
-        subset (dict): the subset dict that is contained by the superset
-        subset_key (str): the key of the subset dictionary
-        sub_keys (list): a list of subset keys to keep
+        superset (dict):
+            the superset dict that contains the subset.
+        subset (dict):
+            the subset dict that is contained by the superset.
+        subset_key (str):
+            the key of the subset dictionary.
+        sub_keys (list):
+            a list of subset keys to keep.
 
     Returns:
-        dict: A dictionary that includes inherited heys from the subset specified by sub_keys
+        dict:
+            A dictionary that includes inherited heys from the subset specified by sub_keys.
     """
     processed_dict = superset.copy()
     processed_subset = filter_dict(subset, sub_keys)
@@ -50,21 +44,28 @@ def inherit_subset_dict(superset: dict, subset: dict, subset_key: str, sub_keys:
     return processed_dict
 
 
-def split_list_of_subset_dicts(superset: dict, subset_key: str, sub_keys: list):
+def split_list_of_subset_dicts(superset: dict, subset_key: str, sub_keys: list) -> list:
     """Extract a list of dictionaries from a list of subset dictionaries with the specified keys.
 
-    Each element of the list contains keys from both the superset dictionary and the corresponding subset dictionary.  The format of the superset should be similar to what is shown below:
+    Each element of the list contains keys from both the superset dictionary and the corresponding subset dictionary.  The keys from the subset dictionary are specified by the sub_keys list.
 
-    "superset": {
+    Args:
+        superset (dict): the superset dictionary that contains the subset.
+
+        an example of the superset dictionary is shown below:
+
+        "superset": {
             "superset_key_1": "superset_value_1",
             "subset_key": [
                 {
-                    "subset_dict[0]_key_1": "subset_dict[0]_value_1",
-                    "subset_dict[0]_key_2": "subset_dict[0]_value_2"
+                    "subset_dict[0]_key": "subset_dict[0]_value_1".
+                    "subset_dict[0]_sub_keys[0]": "subset_dict[0]_sub_keys[0]_value",
+                    "subset_dict[0]_sub_keys[1]": "subset_dict[0]_sub_keys[1]_value",
                     ...
                 },
                 {
-                    "subset_dict[1]_key_1": "subset_dict[1]_value_1",
+                    "subset_dict[1]_key": "subset_dict[0]_alue_1".
+                    "subset_dict[1]_sub_keys[0]": "subset_dict[1]_sub_keys[0]_value",
                     ...
                 },
             ]
@@ -72,13 +73,37 @@ def split_list_of_subset_dicts(superset: dict, subset_key: str, sub_keys: list):
             ...
         }
 
-    Args:
-        superset (dict): the superset dictionary that contains the subset.
         subset_key (str): the key in the superset dictionary that maps to a list of subset dictionaries.
         sub_keys (list): list of subset keys to keep.
 
     Returns:
-        list: list of dictionaries that include the inherited keys specified by 'sub_keys'.  The format of the returned list
+        list: list of dictionaries that include the inherited keys specified by 'sub_keys'.
+
+        An example of the returned list is shown below:
+
+        [
+            "processed_dicts[0]": {
+                "superset_key_1": "superset_value_1",
+
+                "superset_key_2": "superset_value_2",
+
+                "subset_dict[0]_sub_keys[0]": "subset_dict[0]_sub_keys[0]_value",
+
+                "subset_dict[0]_sub_keys[1]": "subset_dict[0]_sub_keys[1]_value",
+                ...
+            }
+
+            "processed_dicts[1]": {
+                "superset_key_1": "superset_value_1",
+
+                "superset_key_2": "superset_value_2",
+
+                "subset_dict[1]_sub_keys[0]": "subset_dict[1]_sub_keys[0]_value",
+
+                "subset_dict[1]_sub_keys[1]": "subset_dict[1]_sub_keys[1]_value",
+                ...
+            }
+        ]
     """
     processed_dicts = []
     for subset_dict in superset[subset_key]:
@@ -89,19 +114,11 @@ def split_list_of_subset_dicts(superset: dict, subset_key: str, sub_keys: list):
     return processed_dicts
 
 
-def extract_subset_dicts(source_dict: dict, subset_key: str, sub_keys: list):
-    """Extracts a list of dictionaries from a source dictionary using a specified subset key and list of sub keys."""
-    subset_dicts = []
-    for subset_dict in source_dict[subset_key]:
-        processed_dict = inherit_subset_dict(
-            source_dict, subset_dict, subset_key, sub_keys
-        )
-        subset_dicts.append(processed_dict)
-    return subset_dicts
+def process_address(address: dict) -> dict:
+    """returns the address from the address dictionary.
 
-
-def process_address(address: dict):
-    """returns the address from the address dictionary.  Concatenates the street address, city, state and zip codes together."""
+    Concatenates the street address, city, state and zip codes together.
+    """
     return (
         address["streetAddress"]
         + " "
@@ -117,7 +134,15 @@ def process_address(address: dict):
 
 
 def process_amenitySummary(amenitySummary: dict):
-    """processes the amenities of the amenitySummary dictionary.  Currently there are 3 keys in this dictionary: building, __typename, and laundry.  Check later if there are other keys when parsing more listings"""
+    """Returns the amenity summary from the amenitySummary dictionary.  Concatenates the laundry, parking, and pet policies together.
+
+    The amenitySummary dictionary has the following format:
+        "amenitySummary": {
+            "laundry": "In Unit",
+            "parking": "Garage",
+            "petPolicy": ""
+        }
+    """
     amen_summary = amenitySummary["laundry"]
     return amen_summary
 
@@ -199,25 +224,12 @@ def process_bld_features(bld: dict):
     - amenity Details
     - deailed Pet Policy
     """
-    # make a copy of the building dictionary
     processed_bld = bld.copy()
-
-    # process the address key
     processed_bld["address"] = process_address(bld["address"])
-
-    # get the building's walking score from the walkScore key
     processed_bld["walkScore"] = bld["walkScore"]["walkscore"]
-
-    # get the building's transit score from the transitScore key
     processed_bld["transitScore"] = bld["transitScore"]["transit_score"]
-
-    # get the building's bike score from the bikeScore key
     processed_bld["bikeScore"] = bld["bikeScore"]["bikescore"]
-
-    # process the amenitySummary key
     processed_bld["amenitySummary"] = process_amenitySummary(bld["amenitySummary"])
-
-    # split the building attributes from the buildingAttributes key
     # processed_bld_info_dict = add_bld_att(bld_info_dict)
 
     return processed_bld
@@ -279,75 +291,11 @@ def get_units_from_bld(bld: dict):
 # maybe make `wanted_floor_plan_keys` a parameter for the function?
 
 
-"""
-def clean_floorPlans(building_info_dict):
-    '''Processes the building dictionary into multiple apartment unit dictionaries.
-    Creates a list of apartment units for each unit in each plan of the different floor plans.
-    Returns a list of apartment dictionaries unit information of each apartment.  Each index contains different floor plan attributes, but the same building information
-    '''
-
-    wanted_building_keys = ['buildingName', 'latitude', 'longitude', 'lotId', 'address', 'zipcode', 'isLandlordLiaisonProgram', 'buildingType', 'listingFeatureType', 'photoCount', 'videos', 'buildingAttributes', 'amenitySummary',
-                            'isLowIncome', 'isSeniorHousing', 'isStudentHousing', 'screeningCriteria', 'assignedSchools', 'nearbyAmenities', 'walkScore', 'transitScore', 'bikeScore', 'description', 'amenityDetails', 'detailedPetPolicy']
-    procesed_building_info_dict = keep_keys(
-        building_info_dict, wanted_building_keys)
-
-    apt_info_list = []
-    # iterate through each floor plan (dictionary) in the building's floor plan list
-    for floor_plan_dict in building_info_dict['floorPlans']:
-
-        # append the wanted floor plan attributes (keys) to the processed_floor_plan_dict
-        wanted_floor_plan_keys = [
-            'baths', 'beds', 'floorPlanUnitPhotos', 'name', 'photos', 'sqft', 'description']
-        processed_floor_plan_dict = keep_keys(
-            floor_plan_dict, wanted_floor_plan_keys)
-
-        # iterate through the key, value pairs in the floor plan dictionary
-        for key, value in floor_plan_dict.items():
-
-            # check if the key is the 'units' key
-            if key == 'units':
-                units_list = value
-
-                # iterate through each unit in the units list of each floor plan of each building
-                for unit_dict in units_list:
-
-                    # append the wanted unit attributes (keys) to the processed_unit_dict
-                    wanted_unit_keys = [
-                        'unitNumber', 'zpid', 'availableFrom', 'hasApprovedThirdPartyVirtualTour', 'price']
-                    processed_unit_dict = keep_keys(
-                        unit_dict, wanted_unit_keys)
-
-                    # make a new dict (row) to store the building, floor plan and the unit attributes
-                    apt_info_dict = {}
-
-                    # add the building attributes to the apt dict
-                    apt_info_dict.update(procesed_building_info_dict)
-
-                    # add the floor plan info to the apt dict
-                    apt_info_dict.update(processed_floor_plan_dict)
-
-                    # add the unit info to the apt dict
-                    apt_info_dict.update(processed_unit_dict)
-
-                    # append the apt_info_dict to the apt_info_list
-                    apt_info_list.append(apt_info_dict)
-
-    # return the apartment info list
-    return apt_info_list
-"""
-
-
 def process_bld_info(bld_info: list):
     processed_info = []
-    # iterate through each building dictionary and processes the data
     for bld in bld_info:
-        # process the building related features
         processed_bld = process_bld_features(bld)
-
-        # get a list of units from the building
         units = get_units_from_bld(processed_bld)
-
-        # append each unit to the information list
         for unit in units:
             processed_info.append(unit)
 
