@@ -18,11 +18,11 @@ Pandas
 ## Configuration
 You can configure the following settings in `zillow_scraper.py`:
 
-`BASE_URL`: The base URL of the Zillow website. You can change this if you want to scrape data from a different Zillow website, e.g., Zillow Canada.
-`SEARCH_URL`: The search URL for the Zillow search query. You can change this to customize your search query, e.g., by changing the location or property type.
-`HEADERS`: The HTTP headers used by the scraper. You can modify this to mimic a different user agent or to include other custom headers.
-`MAX_PAGES`: The maximum number of pages to scrape. You can change this to scrape more or fewer pages, depending on your needs.
-`DELAY`: The delay between requests, in seconds. You can change this to avoid overloading the Zillow servers and captchas.
+- `BASE_URL`: The base URL of the Zillow website. You can change this if you want to scrape data from a different Zillow website, e.g., Zillow Canada.
+- `SEARCH_URL`: The search URL for the Zillow search query. You can change this to customize your search query, e.g., by changing the location or property type.
+- `HEADERS`: The HTTP headers used by the scraper. You can modify this to mimic a different user agent or to include other custom headers.
+- `MAX_PAGES`: The maximum number of pages to scrape. You can change this to scrape more or fewer pages, depending on your needs.
+- `DELAY`: The delay between requests, in seconds. You can change this to avoid overloading the Zillow servers and captchas.
 
 ## Limitations
 Please note that web scraping can be against the terms of service of some websites and may be illegal in some jurisdictions. Use this script at your own risk and responsibility. Additionally, Zillow may change their website structure or anti-scraping measures at any time, which could render this script obsolete.
