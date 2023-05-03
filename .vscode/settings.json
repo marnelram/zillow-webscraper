@@ -1,6 +1,37 @@
 {
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.autopep8"
-  },
-  "python.formatting.provider": "none"
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnPaste": true,
+    "editor.wordWrap": "on",
+    "python.linting.pylintEnabled": true,
+    "python.formatting.provider": "black",
+    "python.linting.pylintArgs": [
+        "--rcfile=C:/python-projects/.vscode/pylintrc",
+        "--load-plugins",
+        "pylint_quotes",
+        "pylint.extensions.docparams"
+    ],
+    "python.formatting.autopep8Args": [
+        "--ignore=E501"
+    ],
+    "python.analysis.typeCheckingMode": "off",
+    "python.linting.enabled": true,
+    "python.linting.maxNumberOfProblems": 100,
+    "python.linting.flake8Enabled": false,
+    "python.linting.flake8Args": [
+        "--max-line-length=80"
+    ],
+    "python.linting.mypyEnabled": false,
+    "python.linting.mypyArgs": [
+        "--ignore-missing-imports"
+    ],
+    "editor.formatOnSave": true,
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "notebook.formatOnSave.enabled": true,
+    "python.formatting.blackArgs": [
+        "--line-length",
+        "80"
+    ],
+    "autoDocstring.includeExtendedSummary": true,
 }
