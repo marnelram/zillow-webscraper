@@ -1,6 +1,7 @@
 """This script processes the raw building information and stores the processed information in a json file."""
 
 import json
+import src.utils.dict_utils as dict_utils
 
 # open the building information and store it as bld_info_list
 with open("raw-bld-info.json", "r", encoding="utf-8") as f:
@@ -99,7 +100,7 @@ def add_bld_att(bld: dict):
     ]
 
     # inherit the buildingAttribute dictionary and add it to the building dictionary
-    processed_bld_info = inherit_subset_dict(
+    processed_bld_info = dict_utils.inherit_subset_dict(
         bld, bld["buildingAttributes"], "buildingAttributes", keys
     )
 
@@ -149,7 +150,7 @@ def get_plans_from_bld(bld: dict):
     # iterate through each floor plan in the 'floorPlans' key
     for floor_plan in bld["floorPlans"]:
         # inherit the floorPlan dict and keep the plan's keys
-        processed_floor_plan = inherit_subset_dict(
+        processed_floor_plan = dict_utils.inherit_subset_dict(
             bld, floor_plan, "floorPlans", plan_keys
         )
 
@@ -165,7 +166,7 @@ def get_units_from_plans(floor_plan: dict):
     unit_keys = ["unitNumber", "zpid", "availableFrom", "price"]
 
     for unit in floor_plan["units"]:
-        processed_unit = inherit_subset_dict(
+        processed_unit = dict_utils.inherit_subset_dict(
             floor_plan, unit, "units", unit_keys
         )
         units.append(processed_unit)

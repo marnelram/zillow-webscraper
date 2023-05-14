@@ -34,4 +34,7 @@
         "80"
     ],
     "autoDocstring.includeExtendedSummary": true,
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "${workspaceFolder}/src;${env:PYTHONPATH}"
+    },
 }
