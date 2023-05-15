@@ -1,7 +1,10 @@
-"""This script processes the raw building information and stores the processed information in a json file."""
+"""This script processes the raw building information and stores the processed information in a json file.
+
+notes:
+    <aybe make `wanted_floor_plan_keys` a parameter for the function?
+"""
 
 import json
-
 import src.utils as dict_utils
 
 
@@ -9,7 +12,7 @@ def run():
     """A function to run the module.  First opens the raw listing information, processes it, then dumps the data as a json format.  In progress, will be updated with the project progresses"""
     bld_info = open_data()
     processed_info = process_bld_info(bld_info)
-    dump_data()
+    dump_data(processed_info)
 
 
 def open_data() -> dict:
@@ -139,7 +142,7 @@ def process_bld_features(bld: dict) -> dict:
     return processed_bld
 
 
-def get_units_from_bld(bld: dict):
+def get_units_from_bld(bld: dict) -> list:
     """returns a list of units from the building.  Each unit includes features about the building, floor plan, and unit."""
 
     def get_plans_from_bld(bld: dict):
@@ -189,10 +192,7 @@ def get_units_from_bld(bld: dict):
     return units
 
 
-# maybe make `wanted_floor_plan_keys` a parameter for the function?
-
-
-def process_bld_info(bld_info: list):
+def process_bld_info(bld_info: list) -> list:
     processed_info = []
     for bld in bld_info:
         processed_bld = process_bld_features(bld)
