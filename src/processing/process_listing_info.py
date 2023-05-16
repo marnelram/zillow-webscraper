@@ -1,7 +1,7 @@
 """This script processes the raw building information and stores the processed information in a json file.
 
 notes:
-    <aybe make `wanted_floor_plan_keys` a parameter for the function?
+    Maybe make `wanted_floor_plan_keys` a parameter for the function?
 """
 
 import json
@@ -10,17 +10,34 @@ import src.utils as dict_utils
 
 def run():
     """A function to run the module.  First opens the raw listing information, processes it, then dumps the data as a json format.  In progress, will be updated with the project progresses"""
-    bld_info = open_data()
-    processed_info = process_bld_info(bld_info)
+    listings_info = open_data()
+    processed_info = process_listings(listings_info)
     dump_data(processed_info)
 
 
 def open_data() -> dict:
     """open the building information and store it as bld_info"""
-    with open("data/raw/raw_listings.json", "r", encoding="utf-8") as f:
+    with open("data/raw/raw_listings_2.json", "r", encoding="utf-8") as f:
         raw_bld_info = f.read()
-    bld_info = json.loads(raw_bld_info)
-    return bld_info
+    listings_info = json.loads(raw_bld_info)
+    return listings_info
+
+
+def process_listings(bld_info: list) -> list:
+    """Returns a list of processed listing information.  Each listing includes features about the building, floor plan, and unit."""
+    processed_info = []
+    for bld in bld_info:
+        processed_bld = process_bld_features(bld)
+        units = get_units_from_bld(processed_bld)
+        for unit in units:
+            processed_info.append(unit)
+    return processed_info
+
+
+def dump_data(processed_info: dict):
+    """function to dump the data in a json file.  In progress, will be updated as the project progresses"""
+    with open("data/interim/listings.json", "w", encoding="utf-8") as f:
+        f.write(json.dumps(processed_info))
 
 
 def process_bld_features(bld: dict) -> dict:
@@ -159,11 +176,16 @@ def get_units_from_bld(bld: dict) -> list:
             "photos",
             "sqft",
         ]
-        for floor_plan in bld["floorPlans"]:
-            processed_floor_plan = dict_utils.inherit_subset_dict(
-                bld, floor_plan, "floorPlans", plan_keys
-            )
-            floor_plans.append(processed_floor_plan)
+        # check if the building has floor plans
+        try:
+            for floor_plan in bld["floorPlans"]:
+                processed_floor_plan = dict_utils.inherit_subset_dict(
+                    bld, floor_plan, "floorPlans", plan_keys
+                )
+                floor_plans.append(processed_floor_plan)
+        #
+        except TypeError as e:
+            floor_plans.append(bld)
         return floor_plans
 
     def get_units_from_plan(floor_plan: dict):
@@ -171,20 +193,22 @@ def get_units_from_bld(bld: dict) -> list:
         units = []
         unit_keys = ["unitNumber", "zpid", "availableFrom", "price"]
 
-        for unit in floor_plan["units"]:
-            processed_unit = dict_utils.inherit_subset_dict(
-                floor_plan, unit, "units", unit_keys
-            )
-            units.append(processed_unit)
-
+        # check if the floor plan has units
+        try:
+            for unit in floor_plan["units"]:
+                processed_unit = dict_utils.inherit_subset_dict(
+                    floor_plan, unit, "units", unit_keys
+                )
+                units.append(processed_unit)
+        # if the floor plan does not have units, then add the floor plan to the units list
+        except TypeError as e:
+            units.append(floor_plan)
+        except KeyError as e:
+            units.append(floor_plan)
         return units
 
     units = []
-
-    # get the floor plans from each building
     floor_plans = get_plans_from_bld(bld)
-
-    # get the units from each floor plan
     for floor_plan in floor_plans:
         floor_units = get_units_from_plan(floor_plan)
         for unit in floor_units:
@@ -192,18 +216,5 @@ def get_units_from_bld(bld: dict) -> list:
     return units
 
 
-def process_bld_info(bld_info: list) -> list:
-    processed_info = []
-    for bld in bld_info:
-        processed_bld = process_bld_features(bld)
-        units = get_units_from_bld(processed_bld)
-        for unit in units:
-            processed_info.append(unit)
-
-    return processed_info
-
-
-def dump_data(processed_info: dict):
-    """function to dump the data in a json file.  In progress, will be updated as the project progresses"""
-    with open("data/interim/listings.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(processed_info))
+if __name__ == "__main__":
+    run()

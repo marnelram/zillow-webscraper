@@ -26,12 +26,16 @@ rent_intervals = [(0, 1699), (1700, 2199), (2200, 3199), (3200, 9000)]
 
 
 def run():
-    """A function to run when the scrape_search_info.py module is called
+    """A function to run the scraping process.
 
-    A work in progress, will be updated when the project progresses
+    A work in progress.  Will be updated when the project progresses.
     """
-    response_list = scrape_search_results_from_zillow()
-    pass
+    request_info_list = set_request_info(
+        city=city, rent_intervals=rent_intervals, max_page_num=max_page_num
+    )
+    response_list = scrape_search_results(request_info_list)
+    listing_list = parse_responses(response_list)
+    dump_listings(listing_list)
 
 
 def set_request_info(
@@ -104,7 +108,7 @@ def set_request_info(
     return request_info_list
 
 
-def scrape_search_results_from_zillow(response_list: list) -> list:
+def scrape_search_results(request_info_list: list) -> list:
     """A function to scrape the search url for the listing url extensions.
 
     In progress, will be updated as the project progresses.
@@ -112,9 +116,6 @@ def scrape_search_results_from_zillow(response_list: list) -> list:
     Returns:
         A list of response objects generated from scraping the search results from zillow
     """
-    request_info_list = set_request_info(
-        city=city, rent_intervals=rent_intervals, max_page_num=max_page_num
-    )
     response_list = []
     for current_page, params in request_info_list:
         # store the html request for the current page of the current rent_interval
@@ -145,7 +146,7 @@ def parse_responses(response_list: list) -> list:
         """Finds the list_results json object in the soup."""
 
         def get_API_request_dict(soup: object) -> dict:
-            """Get's the dictionary containing the API request information"""
+            """Gets the dictionary containing the API request information"""
             API_request_tag = soup.find(
                 "script",
                 {
@@ -153,42 +154,38 @@ def parse_responses(response_list: list) -> list:
                     "type": "application/json",
                 },
             )
-            json_API_request_tag = API_request_tag.text.replace("<!--", "").replace(
-                "-->", ""
-            )
+            json_API_request_tag = API_request_tag.text.replace(
+                "<!--", ""
+            ).replace("-->", "")
             API_request_dict = json.loads(json_API_request_tag)
             return API_request_dict
 
-        def get_listResults_dict(API_request_dict: dict) -> list:
-            """ This python dictionary is a python dict that contains multiple dicts.  To find where the list_results dict is, the following selections must happen: cat1 dict->searchResults dict->listResults dict"""
-            listing_info = []
+        def get_listResults_dict(API_request_dict: dict) -> dict:
+            """Gets the listResults dict from the API request dict."""
             for key, value in API_request_dict.items():
-                # find the cat1 (category 1) dict
                 if key == "cat1":
                     for key, value in value.items():
-                        # find the searchResults dict
                         if key == "searchResults":
                             for key, value in value.items():
-                                # find the listResults dict
                                 if key == "listResults":
-                                    for listing in value:
-                                         listing_info.append(listing)
+                                    return value
 
+        API_request_dict = get_API_request_dict(soup)
+        listing_info = get_listResults_dict(API_request_dict)
+        return listing_info
 
-        for soup in soup_list:
-             API_request_dict = get_API_request_dict(soup)
-
-
-    apartment_info = []
+    listing_list = []
     soup_list = make_soup_list(response_list)
+    for soup in soup_list:
+        listing_list.append(get_list_results(soup))
+    return listing_list
 
 
-                                    apartment_info.append(listing)
-
-    apartment_info_json = json.dumps(apartment_info)
-
-with open(
-    "C:/Projects/Housing_Price_Prediction/data_processing/raw_bld_url_exts.json",
-    "w",
-) as f:
-    f.write(apartment_info_json)
+def dump_listings(listing_list: list) -> None:
+    """Dumps the listing list to a json file."""
+    listing_list_json = json.dumps(listing_list)
+    with open(
+        "C:/Projects/Housing_Price_Prediction/data_processing/raw_bld_url_exts.json",
+        "w",
+    ) as f:
+        f.write(listing_list_json)

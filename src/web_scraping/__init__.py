@@ -1,1 +1,1 @@
-from zillow_scraper import ZillowScraper
+from src.zillow_scraper import ZillowScraper

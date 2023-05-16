@@ -2,11 +2,8 @@
 
 This module is a work in progress and will be updated as the project progresses.
 """
-import requests
-import json
 import pandas as pd
 import urllib.parse
-from bs4 import BeautifulSoup
 
 import web_scraping.scrape_search_info as scrape_search_info
 import web_scraping.scrape_listings as scrape_listings
@@ -59,8 +56,8 @@ class ZillowScraper:
         """A function to scrape the search url for the apartment listings, then scrape listings for more detailed information.
 
         The scraping process happens in two steps:
-        1. Scrape the search url for the listing url extensions (ex. /seattle-wa/arthouse/5Yy9f4/").
-        2. Scrape each listing using the url extensions.
+            1. Scrape the search url for the listing url extensions (ex. /seattle-wa/arthouse/5Yy9f4/").
+            2. Scrape each listing using the url extensions.
 
         Returns:
             listing_information (csv): A csv file with the listing information.
@@ -68,15 +65,3 @@ class ZillowScraper:
         scrape_search_info.scrape()
 
         scrape_search_info.parse()
-
-    def parse_search_url(self):
-        """A function to parse the search url into a soup object.
-
-        Returns:
-            soup (BeautifulSoup): A BeautifulSoup object of the search url.
-        """
-        # make a request to the search url
-        response = requests.get(self.search_url)
-        # parse the response into a soup object
-        soup = BeautifulSoup(response.content, "html.parser")
-        return soup

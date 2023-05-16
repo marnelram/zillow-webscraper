@@ -1,3 +1,12 @@
+""" A module to process the search information scraped from the Zillow search pages.
+
+This module contains functions to process the search information scraped from the Zillow search pages. The search information is loaded from a json file, processed, and then dumped into a json file.
+
+Example:
+    To run the module, import it and call the run function.
+        $ import process_search_info
+        $ process_search_info.run()
+"""
 import json
 
 
