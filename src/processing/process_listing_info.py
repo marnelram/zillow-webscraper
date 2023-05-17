@@ -13,6 +13,7 @@ def run():
     listings_info = open_data()
     processed_info = process_listings(listings_info)
     dump_data(processed_info)
+    print_floor_plans(listings_info)
 
 
 def open_data() -> dict:
@@ -183,8 +184,9 @@ def get_units_from_bld(bld: dict) -> list:
                     bld, floor_plan, "floorPlans", plan_keys
                 )
                 floor_plans.append(processed_floor_plan)
-        #
+        # if the building does not have floor plans, then delete the "floorPlans" key and add the building to the floor plans list
         except TypeError as e:
+            del bld["floorPlans"]
             floor_plans.append(bld)
         return floor_plans
 
@@ -200,9 +202,11 @@ def get_units_from_bld(bld: dict) -> list:
                     floor_plan, unit, "units", unit_keys
                 )
                 units.append(processed_unit)
-        # if the floor plan does not have units, then add the floor plan to the units list
+        # if the floor plan does not have units, then delete the "units" key add the floor plan to the units list
         except TypeError as e:
+            del floor_plan["units"]
             units.append(floor_plan)
+        # if the floor plan doesn't exist, then add the floor plan to the units list
         except KeyError as e:
             units.append(floor_plan)
         return units
@@ -214,6 +218,11 @@ def get_units_from_bld(bld: dict) -> list:
         for unit in floor_units:
             units.append(unit)
     return units
+
+
+def print_floor_plans(listing_info):
+    for listing in listing_info:
+        print(json.dumps(listing["floorPlans"], indent=4))
 
 
 if __name__ == "__main__":
