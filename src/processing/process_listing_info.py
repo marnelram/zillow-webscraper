@@ -160,56 +160,71 @@ def process_bld_features(bld: dict) -> dict:
     return processed_bld
 
 
+def get_plans_from_bld(bld: dict):
+    """Returns a list of floor plans from the building. Each floor plan includes features about the building and the floor plan.
+
+    Used as a part of the get_units_from_bld function.  This function is used to process the floor plans from the building dictionary.  The floor plans are then used to process the units from the building dictionary.  The floor plans are processed by inheriting the building dictionary and adding the floor plan dictionary to the building dictionary.  The floor plan dictionary is then added to the floor plans list.
+
+    Exceptions:
+        - some buildings do not have floor plans.  This causes a TypeError when trying to access the floor plans from the building dictionary.  This issue is handled by using a try/except block to catch the TypeError and pass it.
+    """
+    floor_plans = []
+    plan_keys = [
+        "minPrice",
+        "maxPrice",
+        "units",
+        "baths",
+        "beds",
+        "floorPlanUnitPhotos",
+        "name",
+        "photos",
+        "sqft",
+    ]
+    # check if the building has floor plans
+    try:
+        for floor_plan in bld["floorPlans"]:
+            processed_floor_plan = dict_utils.inherit_subset_dict(
+                bld, floor_plan, "floorPlans", plan_keys
+            )
+            floor_plans.append(processed_floor_plan)
+    # if the building does not have floor plans then don't add it to the floor_plans
+    except TypeError as e:
+        pass
+    return floor_plans
+
+
+def get_units_from_plan(floor_plan: dict):
+    """returns a list of units from the floor plan. each unit includes features about the building, floor plan and unit.
+
+    Used as a part of the get_units_from_bld function.  This function is used to process the units from the floor plan dictionary.  The units are processed by inheriting the floor plan dictionary and adding the unit dictionary to the floor plan dictionary.  The unit dictionary is then added to the units list.
+
+    Exceptions:
+        - some floor plans do not have units.  This causes a TypeError when trying to access the units from the floor plan dictionary.  This issue is handled by using a try/except block to catch the TypeError and pass it.
+    """
+    units = []
+    unit_keys = ["unitNumber", "zpid", "availableFrom", "price"]
+
+    # check if the floor plan has units
+    try:
+        for unit in floor_plan["units"]:
+            processed_unit = dict_utils.inherit_subset_dict(
+                floor_plan, unit, "units", unit_keys
+            )
+            del processed_unit["minPrice"]
+            del processed_unit["maxPrice"]
+            units.append(processed_unit)
+    # if the floor plan does not have units, then delete the "units" key, set the price of the floor plan, and add the floor plan to the units list
+    except TypeError as e:
+        del floor_plan["units"]
+        floor_plan["price"] = floor_plan["minPrice"]
+        del floor_plan["minPrice"]
+        del floor_plan["maxPrice"]
+        units.append(floor_plan)
+    return units
+
+
 def get_units_from_bld(bld: dict) -> list:
     """returns a list of units from the building.  Each unit includes features about the building, floor plan, and unit."""
-
-    def get_plans_from_bld(bld: dict):
-        """Returns a list of floor plans from the building. Each floor plan includes features about the building and the floor plan."""
-        floor_plans = []
-        plan_keys = [
-            "minPrice",
-            "maxPrice",
-            "units",
-            "baths",
-            "beds",
-            "floorPlanUnitPhotos",
-            "name",
-            "photos",
-            "sqft",
-        ]
-        # check if the building has floor plans
-        try:
-            for floor_plan in bld["floorPlans"]:
-                processed_floor_plan = dict_utils.inherit_subset_dict(
-                    bld, floor_plan, "floorPlans", plan_keys
-                )
-                floor_plans.append(processed_floor_plan)
-        # if the building does not have floor plans, then delete the "floorPlans" key and add the building to the floor plans list
-        except TypeError as e:
-            del bld["floorPlans"]
-            floor_plans.append(bld)
-        return floor_plans
-
-    def get_units_from_plan(floor_plan: dict):
-        """returns a list of units from the floor plan. each unit includes features about the building, floor plan and unit."""
-        units = []
-        unit_keys = ["unitNumber", "zpid", "availableFrom", "price"]
-
-        # check if the floor plan has units
-        try:
-            for unit in floor_plan["units"]:
-                processed_unit = dict_utils.inherit_subset_dict(
-                    floor_plan, unit, "units", unit_keys
-                )
-                units.append(processed_unit)
-        # if the floor plan does not have units, then delete the "units" key add the floor plan to the units list
-        except TypeError as e:
-            del floor_plan["units"]
-            units.append(floor_plan)
-        # if the floor plan doesn't exist, then add the floor plan to the units list
-        except KeyError as e:
-            units.append(floor_plan)
-        return units
 
     units = []
     floor_plans = get_plans_from_bld(bld)
