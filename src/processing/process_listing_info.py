@@ -13,7 +13,6 @@ def run():
     listings_info = open_data()
     processed_info = process_listings(listings_info)
     dump_data(processed_info)
-    print_floor_plans(listings_info)
 
 
 def open_data() -> dict:

@@ -81,5 +81,5 @@ def dump_url_exts(url_exts):
     Args:
         processed_urls (list): A list of the processed urls.
     """
-    with open("data.url_exts.json", "w") as f:
+    with open("data.url_exts_2.json", "w") as f:
         f.write(json.dumps(url_exts))
