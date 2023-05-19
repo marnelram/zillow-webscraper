@@ -17,7 +17,11 @@ def run():
 
 def open_data() -> dict:
     """open the building information and store it as bld_info"""
-    with open("data/raw/raw_listings_2.json", "r", encoding="utf-8") as f:
+    with open(
+        "C:/python-projects/zillow_webscraper/issues/zillow-webscraper/data/raw_v2/raw_listings_3.json",
+        "r",
+        encoding="utf-8",
+    ) as f:
         raw_bld_info = f.read()
     listings_info = json.loads(raw_bld_info)
     return listings_info
@@ -36,7 +40,7 @@ def process_listings(bld_info: list) -> list:
 
 def dump_data(processed_info: dict):
     """function to dump the data in a json file.  In progress, will be updated as the project progresses"""
-    with open("data/interim/listings.json", "w", encoding="utf-8") as f:
+    with open("data/interim/listings_2.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(processed_info))
 
 
