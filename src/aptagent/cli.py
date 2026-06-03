@@ -32,6 +32,7 @@ def fetch(
         None, "--fixtures", "-f", help="Load building payloads from JSON file(s) instead of the network."
     ),
     max_pages: int = typer.Option(20, help="Max search pages per rent band (live mode)."),
+    max_buildings: int = typer.Option(None, help="Cap building-detail fetches (live mode; protects API credits)."),
     dry_run: bool = typer.Option(False, help="Normalize only; do not write to the database."),
 ):
     """Fetch listings and upsert them into Postgres."""
@@ -42,8 +43,10 @@ def fetch(
         console.print(f"Loaded [bold]{len(buildings)}[/] building payloads from fixtures.")
         listings = normalize_buildings(buildings)
     else:
-        console.print("Fetching live from Zillow (this is slow and ToS-sensitive)...")
-        listings = ZillowFetcher().fetch(max_pages=max_pages)
+        fetcher = ZillowFetcher()
+        via = "ScraperAPI" if fetcher.scraperapi_key else "direct (likely blocked)"
+        console.print(f"Fetching live from Zillow via {via} (slow, ToS-sensitive)...")
+        listings = fetcher.fetch(max_pages=max_pages, max_buildings=max_buildings)
 
     console.print(f"Normalized [bold]{len(listings)}[/] units.")
     if dry_run:

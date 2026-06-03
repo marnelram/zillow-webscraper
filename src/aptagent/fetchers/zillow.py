@@ -25,7 +25,10 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from aptagent.fetchers.base import Fetcher
 from aptagent.schemas import Listing
+from aptagent.settings import get_settings
 from aptagent.util import clean_list, epoch_ms_to_date, safe_int, split_custom_amenities
+
+_SCRAPERAPI_URL = "https://api.scraperapi.com/"
 
 # Boolean buildingAttributes worth surfacing as amenities (flag -> label).
 _BOOL_AMENITIES = {
@@ -211,12 +214,16 @@ class ZillowFetcher(Fetcher):
         city: str = "seattle-wa",
         rent_intervals: list[tuple[int, int]] | None = None,
         delay_seconds: float = 2.0,
-        timeout: float = 30.0,
+        timeout: float = 60.0,
+        scraperapi_key: str | None = None,
     ):
         self.city = city
         self.rent_intervals = rent_intervals or self.DEFAULT_RENT_INTERVALS
         self.delay_seconds = delay_seconds
         self.timeout = timeout
+        # When set, all Zillow requests are routed through ScraperAPI to bypass
+        # anti-bot. Falls back to the (usually blocked) direct request if empty.
+        self.scraperapi_key = scraperapi_key if scraperapi_key is not None else get_settings().scraperapi_key
 
     def _search_params(self, min_rent: int, max_rent: int, page: int) -> dict:
         return {
@@ -233,9 +240,16 @@ class ZillowFetcher(Fetcher):
             "pagination": {"currentPage": page},
         }
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=20))
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
     def _get(self, client: httpx.Client, url: str, params: dict) -> httpx.Response:
-        resp = client.get(url, params={"searchQueryState": json.dumps(params)})
+        target = str(httpx.URL(url).copy_merge_params({"searchQueryState": json.dumps(params)}))
+        if self.scraperapi_key:
+            resp = client.get(
+                _SCRAPERAPI_URL,
+                params={"api_key": self.scraperapi_key, "url": target, "country_code": "us"},
+            )
+        else:
+            resp = client.get(target)
         resp.raise_for_status()
         return resp
 
@@ -260,7 +274,7 @@ class ZillowFetcher(Fetcher):
                     time.sleep(self.delay_seconds)
         return ids
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=20))
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
     def _fetch_building(self, client: httpx.Client, lot_id: int) -> dict | None:
         payload = {
             "operationName": "BuildingQuery",
@@ -268,13 +282,24 @@ class ZillowFetcher(Fetcher):
                           "lotId": lot_id, "update": False},
             "extensions": {"persistedQuery": {"version": 1, "sha256Hash": _GRAPHQL_SHA}},
         }
-        resp = client.post("https://www.zillow.com/graphql/", json=payload)
+        graphql_url = "https://www.zillow.com/graphql/"
+        if self.scraperapi_key:
+            resp = client.post(
+                _SCRAPERAPI_URL,
+                params={"api_key": self.scraperapi_key, "url": graphql_url,
+                        "keep_headers": "true", "country_code": "us"},
+                json=payload,
+            )
+        else:
+            resp = client.post(graphql_url, json=payload)
         resp.raise_for_status()
         data = resp.json()
         return (data.get("data") or {}).get("building")
 
-    def fetch(self, max_pages: int = 20) -> list[Listing]:
+    def fetch(self, max_pages: int = 20, max_buildings: int | None = None) -> list[Listing]:
         lot_ids = self._collect_building_ids(max_pages)
+        if max_buildings is not None:
+            lot_ids = set(list(lot_ids)[:max_buildings])
         buildings: list[dict] = []
         with httpx.Client(headers={**_HEADERS, "origin": "https://www.zillow.com"}, timeout=self.timeout) as client:
             for lot_id in lot_ids:

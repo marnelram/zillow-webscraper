@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # Census
     census_api_key: str = ""
 
+    # ScraperAPI (unblocks Zillow's anti-bot for the live fetcher)
+    scraperapi_key: str = ""
+
     @property
     def sqlalchemy_url(self) -> str:
         """Return the connection string with the psycopg (v3) driver for SQLAlchemy."""
