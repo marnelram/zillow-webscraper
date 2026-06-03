@@ -1,0 +1,33 @@
+# Apartment-hunt preferences for the scoring engine. Tune freely — re-run `aptagent score`.
+# Derived from the user's stated criteria (see agent-memory/apartment-hunt-preferences.md).
+
+hard_filters:
+  total_cost_cap: 3000        # reject if rent + parking + pet rent exceeds this
+  require_rent: true          # drop listings with no rent (can't rank)
+
+soft:
+  rent_floor: 1200            # rent at/below this = best affordability score
+  min_sqft: 450               # "enough space" — soft penalty below this, not a reject
+  bedroom_pref: [0, 1]        # 0 == studio; studio/1BR preferred
+
+move_in:
+  earliest: 2026-11-01
+  latest: 2027-02-28
+  # Soft, not a hard filter: listings turn over, so today's inventory rarely shows
+  # Nov+ availability. In-window availability gets a bonus; far-off gets a mild penalty.
+  mode: soft
+
+# Relative importance. Need not sum to 100 — the engine normalizes over whichever
+# factors have data for a given listing. Set a weight to 0 to disable a factor.
+weights:
+  affordability: 25           # cheaper is better
+  transit_access: 30          # quick transit = top priority
+  light_rail: 20              # near a Link station
+  central_seattle: 20         # close to the heart of the city
+  gym: 15                     # best-effort (sparse in structured data; enrichment helps)
+  parks: 10
+  neighborhood_feel: 5        # Census income/renter proxy (needs CENSUS_API_KEY)
+  bedroom_pref: 10
+  high_floor: 5               # best-effort (floor rarely in data; enrichment fills)
+  south_facing: 5             # best-effort (for the in-house garden; enrichment fills)
+  move_in: 10

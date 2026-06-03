@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual envs / uv
+.venv/
+.uv/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Agent memory (personal preferences, not for VCS)
+agent-memory/
+
+# Local data cache (raw scrapes, sqlite, etc.)
+data/cache/
+data/interim/
+*.sqlite
+*.db
+
+# Claude Code local settings (personal permissions)
+.claude/settings.local.json
+
+# IDE / OS
+.DS_Store
+.idea/
