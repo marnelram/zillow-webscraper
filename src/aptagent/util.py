@@ -2,10 +2,43 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timezone
 
 # Sentinel values Zillow uses for "no real data" in list fields.
 _UNKNOWN = {"unknown", "none", "", "n/a"}
+
+
+def parse_price(value) -> int | None:
+    """Parse a price string like '$1,462+/mo' or '$1,454/mo' into an int."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    m = re.search(r"[\d,]+", str(value))
+    if not m:
+        return None
+    try:
+        return int(m.group().replace(",", ""))
+    except ValueError:
+        return None
+
+
+def parse_address(address: str | None) -> tuple[str | None, str | None, str | None]:
+    """Parse 'street, City, ST 98115' -> (city, state, zipcode). Best-effort."""
+    if not address:
+        return None, None, None
+    parts = [p.strip() for p in address.split(",") if p.strip()]
+    if len(parts) < 2:
+        return None, None, None
+    city = parts[-2]
+    state, zipcode = None, None
+    tail = parts[-1].split()
+    if tail:
+        state = tail[0]
+        if len(tail) > 1 and re.fullmatch(r"\d{5}(-\d{4})?", tail[1]):
+            zipcode = tail[1]
+    return city, state, zipcode
 
 
 def epoch_ms_to_date(value) -> date | None:

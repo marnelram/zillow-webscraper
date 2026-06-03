@@ -20,39 +20,81 @@ from aptagent.fetchers.base import Fetcher
 from aptagent.fetchers.zillow import ZillowFetcher
 from aptagent.schemas import Listing
 from aptagent.settings import get_settings
-from aptagent.util import safe_int
+from aptagent.util import epoch_ms_to_date, parse_address, parse_price, safe_int
 
 _APIFY_BASE = "https://api.apify.com/v2"
 
 
+def _first(*values):
+    for v in values:
+        if v is not None:
+            return v
+    return None
+
+
+def _avail_date(value):
+    """availabilityDate may be epoch-ms or an ISO 'YYYY-MM-DD' string."""
+    if value is None:
+        return None
+    d = epoch_ms_to_date(value)
+    if d:
+        return d
+    try:
+        from datetime import date as _date
+        return _date.fromisoformat(str(value)[:10])
+    except ValueError:
+        return None
+
+
 def normalize_apify_item(item: dict) -> Listing | None:
-    """Map one Apify Zillow result object into a Listing (None if unusable)."""
-    zpid = item.get("zpid") or item.get("id")
+    """Map one Apify Zillow result into a Listing.
+
+    Handles both individual-home cards (zpid, beds, baths, area, baseRent) and
+    building cards (buildingName, lotId, minBaseRent/minBeds/minBaths/minArea).
+    Returns None if the item has neither an id nor a detail URL.
+    """
+    zpid = item.get("zpid")
     zpid = str(zpid) if zpid is not None else None
-    rent = safe_int(item.get("unformattedPrice"))
-    latlong = item.get("latLong") or {}
+    building_id = _first(item.get("lotId"), item.get("buildingId"), item.get("plid"))
+
     detail = item.get("detailUrl")
     if detail and detail.startswith("/"):
         detail = "https://www.zillow.com" + detail
-
-    if zpid is None and detail is None:
+    if zpid is None and building_id is None and detail is None:
         return None
 
+    latlong = item.get("latLong") or {}
+    rent = _first(
+        safe_int(item.get("baseRent")),
+        safe_int(item.get("minBaseRent")),
+        parse_price(item.get("price")),
+    )
+    city, state, zipcode = parse_address(item.get("address"))
+
+    if zpid:
+        listing_id = f"zillow:{zpid}"
+    elif building_id is not None:
+        listing_id = f"zillow:bld:{building_id}"
+    else:
+        listing_id = f"zillow:apify:{abs(hash(detail)) % (10**12)}"
+
     return Listing(
-        listing_id=f"zillow:{zpid}" if zpid else f"zillow:apify:{abs(hash(detail)) % (10**12)}",
+        listing_id=listing_id,
         source="zillow",
         zpid=zpid,
         url=detail,
         address=item.get("address"),
-        city=item.get("addressCity"),
-        state=item.get("addressState"),
-        zipcode=item.get("addressZipcode"),
+        city=city,
+        state=state or item.get("addressState"),
+        zipcode=zipcode,
         latitude=latlong.get("latitude"),
         longitude=latlong.get("longitude"),
         rent=rent,
-        beds=item.get("beds"),
-        baths=item.get("baths"),
-        sqft=safe_int(item.get("area")),
+        beds=_first(item.get("beds"), item.get("minBeds")),
+        baths=_first(item.get("baths"), item.get("minBaths")),
+        sqft=safe_int(_first(item.get("area"), item.get("minArea"))),
+        building_name=item.get("buildingName"),
+        available_from=_avail_date(item.get("availabilityDate")),
         raw=item,
     )
 
