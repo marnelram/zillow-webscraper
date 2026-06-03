@@ -17,12 +17,21 @@ move_in:
   # Nov+ availability. In-window availability gets a bonus; far-off gets a mild penalty.
   mode: soft
 
+neighborhoods:
+  # Names must exist in aptagent.enrich.geo.NEIGHBORHOODS.
+  preferred: [Northgate, Green Lake, Roosevelt, Maple Leaf, Wallingford, Shoreline, Mountlake Terrace, Lynnwood, Bellevue]
+  avoid: [Capitol Hill]            # crime concern — strong downrank, not excluded
+  preferred_radius_mi: 2.5
+  avoid_radius_mi: 1.0
+  avoid_penalty: 0.55              # score x0.55 when inside an avoided area
+
 # Relative importance. Need not sum to 100 — the engine normalizes over whichever
 # factors have data for a given listing. Set a weight to 0 to disable a factor.
-weights:                      # profile: location-first
+weights:                      # profile: location-first, neighborhood-aware
   transit_access: 32          # quick transit = top priority
+  neighborhood_pref: 28       # near preferred areas (north Seattle / Lynnwood / Bellevue)
   light_rail: 25              # near a Link station
-  central_seattle: 25         # close to the heart of the city
+  grocery: 18                 # near a supermarket (you cook) — OSM proximity
   affordability: 18           # cheaper is better (still capped at $3k total)
   gym: 15                     # best-effort (sparse in structured data; enrichment helps)
   parks: 10
@@ -31,3 +40,4 @@ weights:                      # profile: location-first
   neighborhood_feel: 5        # Census income/renter proxy (needs CENSUS_API_KEY)
   high_floor: 5               # best-effort (floor rarely in data; enrichment fills)
   south_facing: 5             # best-effort (for the in-house garden; enrichment fills)
+  # central_seattle removed — replaced by neighborhood_pref (north/Eastside lean)

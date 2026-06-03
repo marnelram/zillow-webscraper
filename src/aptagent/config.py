@@ -28,10 +28,19 @@ class MoveIn(BaseModel):
     mode: str = "soft"
 
 
+class Neighborhoods(BaseModel):
+    preferred: list[str] = Field(default_factory=list)  # names in geo.NEIGHBORHOODS
+    avoid: list[str] = Field(default_factory=list)
+    preferred_radius_mi: float = 2.5   # full bonus within this radius of a preferred centroid
+    avoid_radius_mi: float = 1.0       # penalty applies within this radius of an avoided centroid
+    avoid_penalty: float = 0.6         # score multiplier when inside an avoided area (lower = harsher)
+
+
 class Preferences(BaseModel):
     hard_filters: HardFilters = Field(default_factory=HardFilters)
     soft: SoftPrefs = Field(default_factory=SoftPrefs)
     move_in: MoveIn = Field(default_factory=MoveIn)
+    neighborhoods: Neighborhoods = Field(default_factory=Neighborhoods)
     weights: dict[str, float] = Field(default_factory=dict)
 
     def weight(self, name: str) -> float:

@@ -1,4 +1,8 @@
-"""Scoring + geo tests (pure, no network/DB)."""
+"""Scoring + geo tests (pure, no network/DB).
+
+Note: grocery weight is intentionally omitted from PREFS so scoring never hits
+the Overpass API during tests.
+"""
 
 from __future__ import annotations
 
@@ -14,69 +18,83 @@ PREFS = Preferences.model_validate(
         "hard_filters": {"total_cost_cap": 3000, "require_rent": True},
         "soft": {"rent_floor": 1200, "min_sqft": 450, "bedroom_pref": [0, 1]},
         "move_in": {"earliest": date(2026, 11, 1), "latest": date(2027, 2, 28), "mode": "soft"},
+        "neighborhoods": {
+            "preferred": ["Northgate", "Green Lake", "Lynnwood", "Bellevue"],
+            "avoid": ["Capitol Hill"],
+            "preferred_radius_mi": 2.5,
+            "avoid_radius_mi": 1.0,
+            "avoid_penalty": 0.55,
+        },
         "weights": {
-            "affordability": 25, "transit_access": 30, "light_rail": 20,
-            "central_seattle": 20, "gym": 15, "parks": 10, "bedroom_pref": 10,
-            "move_in": 10,
+            "affordability": 18, "transit_access": 32, "light_rail": 25,
+            "neighborhood_pref": 28, "gym": 15, "parks": 10, "bedroom_pref": 10,
+            "move_in": 8,
         },
     }
 )
 
 
-def _capitol_hill_studio(**over) -> Listing:
+def _northgate_studio(**over) -> Listing:
     base = dict(
         listing_id="t:1", rent=1800, beds=0, baths=1, sqft=520,
-        latitude=47.6190, longitude=-122.3206,  # Capitol Hill station
-        transit_score=80, amenities=["Fitness center"],
+        latitude=47.7060, longitude=-122.3260,  # Northgate (preferred + on Link)
+        transit_score=75, amenities=["Fitness center"],
     )
     base.update(over)
     return Listing(**base)
 
 
 def test_hard_filter_rejects_over_cap():
-    ok, reason = passes_hard_filters(_capitol_hill_studio(rent=2900, pet_rent=200, parking_fee=100), PREFS)
+    ok, reason = passes_hard_filters(_northgate_studio(rent=2900, pet_rent=200, parking_fee=100), PREFS)
     assert not ok and "cap" in reason
 
 
 def test_hard_filter_rejects_no_rent():
-    ok, _ = passes_hard_filters(_capitol_hill_studio(rent=None), PREFS)
+    ok, _ = passes_hard_filters(_northgate_studio(rent=None), PREFS)
     assert not ok
 
 
 def test_cheaper_scores_higher():
-    cheap, _ = score_listing(_capitol_hill_studio(rent=1300), PREFS)
-    pricey, _ = score_listing(_capitol_hill_studio(rent=2900), PREFS)
+    cheap, _ = score_listing(_northgate_studio(rent=1300), PREFS)
+    pricey, _ = score_listing(_northgate_studio(rent=2900), PREFS)
     assert cheap > pricey
 
 
-def test_central_near_link_scores_well():
-    s, reasons = score_listing(_capitol_hill_studio(), PREFS)
-    assert s > 75
+def test_preferred_neighborhood_scores_well():
+    s, reasons = score_listing(_northgate_studio(), PREFS)
+    assert s > 70
+    assert "neighborhood_pref" in reasons
     assert "light_rail" in reasons and "transit_access" in reasons
     assert reasons["bedroom_pref"]["raw"] == 1.0
 
 
-def test_remote_location_scores_lower():
-    near, _ = score_listing(_capitol_hill_studio(), PREFS)
-    # Far from downtown/Link, low transit.
-    far, _ = score_listing(
-        _capitol_hill_studio(latitude=47.30, longitude=-122.45, transit_score=20), PREFS
+def test_avoid_area_penalizes():
+    # Same quality unit, one at Capitol Hill (avoided) vs Northgate (preferred).
+    cap_hill = score_listing(
+        _northgate_studio(latitude=47.6190, longitude=-122.3120), PREFS
     )
-    assert near > far
+    northgate = score_listing(_northgate_studio(), PREFS)
+    assert cap_hill[0] < northgate[0]
+    assert "avoid_area" in cap_hill[1]
 
 
 def test_sqft_floor_penalty():
-    big, _ = score_listing(_capitol_hill_studio(sqft=600), PREFS)
-    tiny, _ = score_listing(_capitol_hill_studio(sqft=300), PREFS)
+    big, _ = score_listing(_northgate_studio(sqft=600), PREFS)
+    tiny, _ = score_listing(_northgate_studio(sqft=300), PREFS)
     assert tiny < big  # 10% nudge for sub-floor sqft
 
 
-def test_geo_nearest_station():
-    name, d = geo.nearest_station(47.6190, -122.3206)
-    assert name == "Capitol Hill"
+def test_geo_nearest_station_two_line():
+    name, d = geo.nearest_station(47.6150, -122.1920)  # Bellevue Downtown
+    assert name == "Bellevue Downtown"
     assert d < 0.2
+
+
+def test_geo_nearest_named():
+    name, d = geo.nearest_named(47.7060, -122.3260, ["Northgate", "Bellevue"])
+    assert name == "Northgate" and d < 0.2
 
 
 def test_geo_handles_missing_coords():
     assert geo.nearest_station(None, None) == (None, None)
-    assert geo.distance_to_downtown(None, None) is None
+    assert geo.nearest_named(None, None, ["Northgate"]) == (None, None)

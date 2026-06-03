@@ -192,14 +192,19 @@ def load_fixture_buildings(path: str | Path) -> list[dict]:
 class ZillowFetcher(Fetcher):
     source = "zillow"
 
-    # Seattle map bounds + region (from the original scraper).
+    # Map bounds covering Tukwila (south) -> Lynnwood (north), West Seattle ->
+    # Bellevue/Redmond (east). Searching by mapBounds (no single regionId) so the
+    # multi-city area is covered; the rent-band chunking keeps each query under cap.
     DEFAULT_MAP_BOUNDS = {
-        "west": -122.465159, "east": -122.224433,
-        "south": 47.491912, "north": 47.734145,
+        "west": -122.46, "east": -122.05,
+        "south": 47.40, "north": 47.86,
     }
-    DEFAULT_REGION = [{"regionId": 16037, "regionType": 6}]
-    # Chunked rent bands keep each search under Zillow's ~800-result cap.
-    DEFAULT_RENT_INTERVALS = [(0, 1699), (1700, 2199), (2200, 3199), (3200, 9000)]
+    DEFAULT_REGION: list = []
+    # Chunked rent bands keep each search under Zillow's ~800-result cap. Finer bands
+    # because the wider area returns more listings per band.
+    DEFAULT_RENT_INTERVALS = [
+        (0, 1499), (1500, 1799), (1800, 2099), (2100, 2399), (2400, 2999), (3000, 9000)
+    ]
 
     def __init__(
         self,

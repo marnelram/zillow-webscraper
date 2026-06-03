@@ -14,7 +14,7 @@ from datetime import date
 from typing import Any
 
 from aptagent.config import Preferences
-from aptagent.enrich import census, geo
+from aptagent.enrich import census, geo, groceries
 
 # Gym keywords for best-effort amenity detection.
 _GYM_WORDS = ("gym", "fitness", "exercise", "cardio", "peloton", "weight room", "health club")
@@ -67,11 +67,22 @@ def _f_light_rail(listing, prefs):
     return raw, f"{d:.1f} mi to {name} Link"
 
 
-def _f_central(listing, prefs):
-    d = geo.distance_to_downtown(getattr(listing, "latitude", None), getattr(listing, "longitude", None))
+def _f_neighborhood_pref(listing, prefs):
+    lat, lon = getattr(listing, "latitude", None), getattr(listing, "longitude", None)
+    name, d = geo.nearest_named(lat, lon, prefs.neighborhoods.preferred)
     if d is None:
         return None, ""
-    return _clamp(1 - d / 6.0), f"{d:.1f} mi to downtown core"
+    radius = prefs.neighborhoods.preferred_radius_mi
+    raw = _clamp(1 - max(0.0, d - 0.5) / max(0.1, radius))
+    return raw, f"{d:.1f} mi to {name} (preferred)"
+
+
+def _f_grocery(listing, prefs):
+    name, d = groceries.nearest_grocery(getattr(listing, "latitude", None), getattr(listing, "longitude", None))
+    if d is None:
+        return None, ""
+    raw = _clamp(1 - max(0.0, d - 0.2) / 1.3)
+    return raw, f"{d:.1f} mi to grocery ({name})"
 
 
 def _f_parks(listing, prefs):
@@ -139,7 +150,8 @@ _FACTORS = {
     "affordability": _f_affordability,
     "transit_access": _f_transit,
     "light_rail": _f_light_rail,
-    "central_seattle": _f_central,
+    "neighborhood_pref": _f_neighborhood_pref,
+    "grocery": _f_grocery,
     "parks": _f_parks,
     "gym": _f_gym,
     "neighborhood_feel": _f_neighborhood,
@@ -168,6 +180,17 @@ def score_listing(listing: Any, prefs: Preferences) -> tuple[float, dict]:
         reasons[name] = {"raw": round(raw, 3), "weight": w, "note": note}
 
     score = (100.0 * weighted_sum / weight_total) if weight_total else 0.0
+
+    # Avoided-neighborhood penalty (e.g. Capitol Hill): multiply the score down.
+    nb = prefs.neighborhoods
+    if nb.avoid:
+        name, d = geo.nearest_named(
+            getattr(listing, "latitude", None), getattr(listing, "longitude", None), nb.avoid
+        )
+        if d is not None and d <= nb.avoid_radius_mi:
+            score *= nb.avoid_penalty
+            pct = int(round((1 - nb.avoid_penalty) * 100))
+            reasons["avoid_area"] = {"raw": None, "weight": None, "note": f"in {name} (avoid, -{pct}%)"}
 
     # Soft sqft floor: gentle nudge down for sub-minimum units (space is low priority).
     sqft = getattr(listing, "sqft", None)
