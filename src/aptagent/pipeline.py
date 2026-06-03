@@ -39,6 +39,7 @@ def run(
     *,
     do_fetch: bool = True,
     max_items: int | None = None,
+    deactivate_missing: bool = True,
     enrich_top: int = 15,
     triage_to: int = 0,
     do_send: bool = True,
@@ -58,6 +59,12 @@ def run(
         result["new"] = up.new
         result["price_changes"] = len(up.price_changes)
         log(f"  fetched {len(listings)}, {up.new} new, {len(up.price_changes)} price changes")
+        # Only retire stale listings after a full (uncapped) fetch, so a partial
+        # run doesn't wrongly deactivate everything it didn't happen to return.
+        if deactivate_missing and max_items is None:
+            retired = store.deactivate_missing({ls.listing_id for ls in listings})
+            result["retired"] = retired
+            log(f"  retired {retired} listings no longer in results")
 
     summary = score_all()
     result["scored"] = summary.scored

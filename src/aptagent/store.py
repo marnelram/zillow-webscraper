@@ -72,6 +72,24 @@ def _upsert_one(session: Session, listing: Listing, result: UpsertResult) -> Non
     result.updated += 1
 
 
+def deactivate_missing(keep_ids: set[str]) -> int:
+    """Mark active listings whose id isn't in keep_ids as inactive.
+
+    Used after a *full* weekly fetch so listings that have left the market drop
+    out of scoring/digests. Only call when the fetch wasn't capped/partial.
+    """
+    if not keep_ids:
+        return 0
+    with session_scope() as session:
+        rows = session.scalars(select(ListingRow).where(ListingRow.is_active.is_(True))).all()
+        n = 0
+        for row in rows:
+            if row.listing_id not in keep_ids:
+                row.is_active = False
+                n += 1
+        return n
+
+
 def count_listings() -> int:
     with session_scope() as session:
         return session.scalar(select(func.count()).select_from(ListingRow)) or 0

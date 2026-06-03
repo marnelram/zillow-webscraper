@@ -78,10 +78,12 @@ def test_avoid_area_penalizes():
     assert "avoid_area" in cap_hill[1]
 
 
-def test_sqft_floor_penalty():
-    big, _ = score_listing(_northgate_studio(sqft=600), PREFS)
-    tiny, _ = score_listing(_northgate_studio(sqft=300), PREFS)
-    assert tiny < big  # 10% nudge for sub-floor sqft
+def test_sqft_floor_penalty_scales():
+    big, _ = score_listing(_northgate_studio(sqft=600), PREFS)       # above floor: no penalty
+    near, _ = score_listing(_northgate_studio(sqft=440), PREFS)      # just below: small penalty
+    micro, reasons = score_listing(_northgate_studio(sqft=225), PREFS)  # far below: ~x0.5
+    assert big > near > micro
+    assert "space" in reasons
 
 
 def test_geo_nearest_station_two_line():

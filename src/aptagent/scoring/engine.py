@@ -192,10 +192,16 @@ def score_listing(listing: Any, prefs: Preferences) -> tuple[float, dict]:
             pct = int(round((1 - nb.avoid_penalty) * 100))
             reasons["avoid_area"] = {"raw": None, "weight": None, "note": f"in {name} (avoid, -{pct}%)"}
 
-    # Soft sqft floor: gentle nudge down for sub-minimum units (space is low priority).
+    # Soft sqft floor: graduated penalty for sub-minimum units. Space is low
+    # priority overall, but micro-studios shouldn't dominate — the penalty scales
+    # with how far below the floor the unit is (down to a x0.5 worst case).
     sqft = getattr(listing, "sqft", None)
-    if sqft is not None and sqft < prefs.soft.min_sqft:
-        score *= 0.9
-        reasons["space"] = {"raw": None, "weight": None, "note": f"{sqft} sqft below {prefs.soft.min_sqft} floor (-10%)"}
+    min_sqft = prefs.soft.min_sqft
+    if sqft is not None and min_sqft and sqft < min_sqft:
+        mult = max(0.5, sqft / min_sqft)
+        score *= mult
+        pct = int(round((1 - mult) * 100))
+        reasons["space"] = {"raw": None, "weight": None,
+                            "note": f"{sqft} sqft below {min_sqft} floor (-{pct}%)"}
 
     return round(score, 1), reasons
