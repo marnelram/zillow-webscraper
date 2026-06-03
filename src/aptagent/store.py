@@ -13,6 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from aptagent.db import session_scope
+from aptagent.models import Enrichment
 from aptagent.models import Listing as ListingRow
 from aptagent.models import PriceHistory
 from aptagent.schemas import Listing
@@ -96,6 +97,35 @@ def save_scores(scored: list[tuple[str, float, dict]]) -> int:
             row.score_reasons = reasons
             n += 1
     return n
+
+
+def enriched_ids() -> set[str]:
+    """listing_ids that already have a cached enrichment."""
+    with session_scope() as session:
+        return set(session.scalars(select(Enrichment.listing_id)).all())
+
+
+def save_enrichment(listing_id: str, dd, model: str) -> None:
+    """Upsert a DeepDive result; also copy inferred floor/orientation onto the listing."""
+    with session_scope() as session:
+        row = session.get(Enrichment, listing_id)
+        if row is None:
+            row = Enrichment(listing_id=listing_id)
+            session.add(row)
+        row.deals = dd.deals
+        row.concessions = dd.concessions
+        row.community_events = dd.community_events
+        row.vibe_summary = dd.vibe_summary
+        row.inferred_floor = dd.floor
+        row.inferred_orientation = dd.orientation
+        row.model_used = model
+        # Propagate inferred floor/orientation so those scoring factors can fire.
+        listing = session.get(ListingRow, listing_id)
+        if listing is not None:
+            if dd.floor is not None and listing.floor is None:
+                listing.floor = dd.floor
+            if dd.orientation is not None and listing.orientation is None:
+                listing.orientation = dd.orientation
 
 
 def top_scored(limit: int = 25, min_score: float = 0.0) -> list[ListingRow]:

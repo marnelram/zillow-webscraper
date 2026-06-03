@@ -114,6 +114,49 @@ def score(
 
 
 @app.command()
+def enrich(
+    top: int = typer.Option(20, help="Rule-scored listings to consider for enrichment."),
+    triage_to: int = typer.Option(0, help="If >0, cheap-model triage cuts to this many before deep-dive."),
+    force: bool = typer.Option(False, help="Re-enrich even if a cached enrichment exists."),
+):
+    """LLM funnel: (optional) cheap triage of the top listings, then strong-model deep-dive."""
+    from aptagent.enrich import llm
+
+    candidates = store.top_scored(limit=top)
+    if not force:
+        done = store.enriched_ids()
+        candidates = [c for c in candidates if c.listing_id not in done]
+    if not candidates:
+        console.print("Nothing to enrich (all cached; use --force to redo).")
+        return
+
+    if triage_to and len(candidates) > triage_to:
+        console.print(f"Triaging {len(candidates)} via {llm.get_settings().aptagent_model_cheap}...")
+        scores = llm.triage_scores(candidates)
+        candidates.sort(key=lambda c: scores.get(c.listing_id, 0.0), reverse=True)
+        candidates = candidates[:triage_to]
+
+    model = llm.get_settings().aptagent_model_strong
+    console.print(f"Deep-diving [bold]{len(candidates)}[/] listings via {model}...")
+    for c in candidates:
+        try:
+            dd = llm.deep_dive(c)
+        except Exception as e:  # noqa: BLE001 — keep going on a single failure
+            console.print(f"  [red]skip[/] {c.listing_id}: {type(e).__name__}: {str(e)[:80]}")
+            continue
+        store.save_enrichment(c.listing_id, dd, model)
+        bits = []
+        if dd.deals:
+            bits.append(f"deals={dd.deals}")
+        if dd.floor is not None:
+            bits.append(f"floor={dd.floor}")
+        if dd.orientation:
+            bits.append(f"facing={dd.orientation}")
+        console.print(f"  [green]ok[/] {(c.building_name or c.address or c.listing_id)[:40]} {' '.join(bits)}")
+    console.print("[green]Enrichment complete.[/] Re-run `aptagent score` to fold in floor/orientation.")
+
+
+@app.command()
 def stats():
     """Print a quick summary of what's in the store."""
     console.print(f"listings in store: [bold]{store.count_listings()}[/]")
