@@ -127,6 +127,13 @@ def _f_high_floor(listing, prefs):
     return (1.0, f"floor {floor} (3+)") if floor >= 3 else (0.3, f"floor {floor}")
 
 
+def _f_in_unit_laundry(listing, prefs):
+    v = getattr(listing, "in_unit_laundry", None)
+    if v is None:
+        return None, ""  # unknown until enrichment fills it
+    return (1.0, "in-unit washer/dryer") if v else (0.0, "no in-unit laundry")
+
+
 def _f_south_facing(listing, prefs):
     o = (getattr(listing, "orientation", None) or "").lower()
     if not o:
@@ -156,6 +163,7 @@ _FACTORS = {
     "gym": _f_gym,
     "neighborhood_feel": _f_neighborhood,
     "bedroom_pref": _f_bedroom,
+    "in_unit_laundry": _f_in_unit_laundry,
     "high_floor": _f_high_floor,
     "south_facing": _f_south_facing,
     "move_in": _f_move_in,

@@ -31,7 +31,15 @@ def _fmt_listing(listing, enrichment, rank: int) -> str:
     if why:
         lines.append(f"<i>{html.escape(why)}</i>")
 
+    if listing.in_unit_laundry is True:
+        lines.append("🧺 In-unit washer/dryer")
+    elif listing.in_unit_laundry is False:
+        lines.append("⚠️ No in-unit laundry")
+
     if enrichment:
+        if enrichment.income_restricted:
+            detail = enrichment.income_restriction_details or "income-restricted"
+            lines.append("🏷 Income-restricted: " + html.escape(detail))
         if enrichment.deals:
             lines.append("💸 " + html.escape(", ".join(enrichment.deals)))
         if enrichment.vibe_summary:

@@ -203,10 +203,11 @@ class ZillowFetcher(Fetcher):
         "south": 47.40, "north": 47.86,
     }
     DEFAULT_REGION: list = []
-    # Chunked rent bands keep each search under Zillow's ~800-result cap. Finer bands
-    # because the wider area returns more listings per band.
+    # Chunked rent bands keep each search under Zillow's ~800-result cap. Capped at
+    # $2999 — anything above the user's $3k total-cost limit is rejected anyway, so
+    # fetching it just wastes scraper credits.
     DEFAULT_RENT_INTERVALS = [
-        (0, 1499), (1500, 1799), (1800, 2099), (2100, 2399), (2400, 2999), (3000, 9000)
+        (0, 1499), (1500, 1799), (1800, 2099), (2100, 2399), (2400, 2999)
     ]
 
     def __init__(

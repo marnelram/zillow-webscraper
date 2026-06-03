@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from aptagent.enrich.detail import amenities_from_resofacts
+from aptagent.enrich.detail import (
+    amenities_from_resofacts,
+    in_unit_laundry_from_reso,
+    photo_urls,
+)
 from aptagent.enrich.funnel import _group, _representative, building_key
 from aptagent.schemas import Listing
 
@@ -48,3 +52,33 @@ def test_amenities_from_resofacts():
 
 def test_amenities_from_empty():
     assert amenities_from_resofacts(None) == []
+
+
+def test_photo_urls_from_mixed_sources():
+    item = {
+        "responsivePhotos": [
+            {"mixedSources": {"jpeg": [
+                {"url": "https://photos.zillowstatic.com/a-192.jpg", "width": 192},
+                {"url": "https://photos.zillowstatic.com/a-1536.jpg", "width": 1536},
+            ]}},
+            {"mixedSources": {"jpeg": [{"url": "https://photos.zillowstatic.com/b-1536.jpg"}]}},
+        ]
+    }
+    urls = photo_urls(item, limit=4)
+    assert urls == [
+        "https://photos.zillowstatic.com/a-1536.jpg",  # largest variant chosen
+        "https://photos.zillowstatic.com/b-1536.jpg",
+    ]
+
+
+def test_photo_urls_fallback_to_imgsrc():
+    assert photo_urls({"imgSrc": "https://x/y.jpg"}) == ["https://x/y.jpg"]
+    assert photo_urls({}) == []
+
+
+def test_in_unit_laundry_detection():
+    assert in_unit_laundry_from_reso({"laundryFeatures": ["Washer/Dryer In Unit"]}) is True
+    assert in_unit_laundry_from_reso({"hasInUnitLaundry": True}) is True
+    assert in_unit_laundry_from_reso({"laundryFeatures": ["Shared", "Common Area"]}) is False
+    assert in_unit_laundry_from_reso({"laundryFeatures": []}) is None
+    assert in_unit_laundry_from_reso(None) is None

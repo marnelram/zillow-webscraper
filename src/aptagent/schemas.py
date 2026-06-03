@@ -38,6 +38,7 @@ class Listing(BaseModel):
     available_from: date | None = None
     floor: int | None = Field(None, description="Best-effort; often unknown")
     orientation: str | None = Field(None, description="Best-effort facing direction, e.g. 'south'")
+    in_unit_laundry: bool | None = Field(None, description="Best-effort; filled by enrichment")
 
     # Costs beyond rent (for the total-cost cap)
     parking_fee: int | None = None

@@ -36,6 +36,7 @@ weights:                      # profile: location-first, neighborhood-aware
   gym: 15                     # best-effort (sparse in structured data; enrichment helps)
   parks: 10
   bedroom_pref: 10
+  in_unit_laundry: 18         # you'll pay more for in-unit W/D (best-effort; filled by enrichment)
   move_in: 8
   neighborhood_feel: 5        # Census income/renter proxy (needs CENSUS_API_KEY)
   high_floor: 5               # best-effort (floor rarely in data; enrichment fills)

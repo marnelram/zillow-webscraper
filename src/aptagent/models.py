@@ -51,6 +51,7 @@ class Listing(Base):
     available_from: Mapped[date | None] = mapped_column(Date, nullable=True)
     floor: Mapped[int | None] = mapped_column(Integer, nullable=True)
     orientation: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    in_unit_laundry: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
     parking_fee: Mapped[int | None] = mapped_column(Integer, nullable=True)
     pet_rent: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -111,6 +112,10 @@ class Enrichment(Base):
     vibe_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     inferred_floor: Mapped[int | None] = mapped_column(Integer, nullable=True)
     inferred_orientation: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    in_unit_laundry: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    income_restricted: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    income_restriction_details: Mapped[str | None] = mapped_column(Text, nullable=True)
+    photos_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
     model_used: Mapped[str | None] = mapped_column(String(80), nullable=True)
     raw_response: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

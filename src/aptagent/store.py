@@ -123,13 +123,14 @@ def enriched_ids() -> set[str]:
         return set(session.scalars(select(Enrichment.listing_id)).all())
 
 
-def save_enrichment(listing_id: str, dd, model: str, apply_unit_fields: bool = True) -> None:
+def save_enrichment(listing_id: str, dd, model: str, apply_unit_fields: bool = True,
+                    photos_used: int = 0) -> None:
     """Upsert a DeepDive result for a listing.
 
-    Building-level fields (deals/concessions/events/vibe) are always stored.
-    Unit-level inferred floor/orientation are only propagated onto the listing
-    when ``apply_unit_fields`` is True — set False for sibling units sharing a
-    building-level enrichment, since those are unit-specific.
+    Building-level fields (deals/concessions/events/vibe/income restriction) are
+    always stored. Unit-level inferred floor/orientation/in_unit_laundry are only
+    propagated onto the listing when ``apply_unit_fields`` is True — set False for
+    sibling units sharing a building-level enrichment.
     """
     with session_scope() as session:
         row = session.get(Enrichment, listing_id)
@@ -140,6 +141,10 @@ def save_enrichment(listing_id: str, dd, model: str, apply_unit_fields: bool = T
         row.concessions = dd.concessions
         row.community_events = dd.community_events
         row.vibe_summary = dd.vibe_summary
+        row.income_restricted = dd.income_restricted
+        row.income_restriction_details = dd.income_restriction_details
+        row.in_unit_laundry = dd.in_unit_laundry
+        row.photos_used = photos_used
         row.inferred_floor = dd.floor if apply_unit_fields else None
         row.inferred_orientation = dd.orientation if apply_unit_fields else None
         row.model_used = model
@@ -150,6 +155,8 @@ def save_enrichment(listing_id: str, dd, model: str, apply_unit_fields: bool = T
                     listing.floor = dd.floor
                 if dd.orientation is not None and listing.orientation is None:
                     listing.orientation = dd.orientation
+                if dd.in_unit_laundry is not None:
+                    listing.in_unit_laundry = dd.in_unit_laundry
 
 
 def update_listing_detail(listing_id: str, description: str | None, amenities: list[str] | None) -> None:

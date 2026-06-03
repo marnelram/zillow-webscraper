@@ -22,14 +22,20 @@ from pydantic import BaseModel, Field
 from aptagent.settings import get_settings
 
 _DEEP_DIVE_INSTRUCTIONS = (
-    "You are helping someone screen apartment listings. From the listing data, "
-    "extract ONLY facts you can support from the text. Return a JSON object with keys: "
-    "deals (array of short strings for any rent specials/concessions like '1 month free'), "
-    "concessions (string summary or null), community_events (array of strings, [] if none), "
+    "You are helping someone screen apartment listings. Use the listing text, any "
+    "attached photos, and web search when needed. Return a JSON object with keys: "
+    "deals (array of short strings for rent specials/concessions like '1 month free'), "
+    "concessions (string summary or null), community_events (array, [] if none), "
     "vibe_summary (one-sentence neighborhood/building vibe or null), "
     "floor (integer floor number if determinable, else null), "
-    "orientation (compass facing like 'south' if determinable, else null). "
-    "Do not invent deals or events that aren't supported by the text."
+    "orientation (compass facing like 'south' if determinable from text/photos, else null), "
+    "in_unit_laundry (true if the unit has its own washer/dryer, false if shared/none, "
+    "null if unknown), "
+    "income_restricted (true if this is income-restricted/affordable housing, else false/null), "
+    "income_restriction_details (if income_restricted, a short string naming the program "
+    "e.g. MFTE / LIHTC / Section 8 / ARCH and the income cap or eligibility if you can find "
+    "it via web search, else null). "
+    "Only state deals/events you can support from the text or a cited source; do not invent them."
 )
 
 
@@ -40,6 +46,9 @@ class DeepDive(BaseModel):
     vibe_summary: str | None = None
     floor: int | None = None
     orientation: str | None = None
+    in_unit_laundry: bool | None = None
+    income_restricted: bool | None = None
+    income_restriction_details: str | None = None
 
 
 def _client():
@@ -132,14 +141,32 @@ def triage_scores(listings: list[Any], model: str | None = None) -> dict[str, fl
     return out
 
 
-def deep_dive(listing: Any, model: str | None = None) -> DeepDive:
-    """Strong-model extraction for a single listing."""
+def deep_dive(
+    listing: Any,
+    model: str | None = None,
+    photos: list[str] | None = None,
+    web_search: bool = False,
+) -> DeepDive:
+    """Strong-model extraction for a single listing.
+
+    ``photos`` (image URLs) are attached for the vision-capable model to read
+    layout/light/laundry/condition. ``web_search`` enables OpenRouter's web
+    plugin (via the ``:online`` model suffix) to look up income-restriction
+    programs and current specials.
+    """
     model = model or get_settings().aptagent_model_strong
+    if web_search and not model.endswith(":online"):
+        model = f"{model}:online"
+
+    content: list[dict] = [{"type": "text", "text": _listing_text(listing)}]
+    for url in (photos or [])[:4]:
+        content.append({"type": "image_url", "image_url": {"url": url}})
+
     resp = _client().chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": _DEEP_DIVE_INSTRUCTIONS},
-            {"role": "user", "content": _listing_text(listing)},
+            {"role": "user", "content": content},
         ],
         response_format={"type": "json_object"},
         temperature=0.1,

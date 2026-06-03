@@ -28,7 +28,7 @@ PREFS = Preferences.model_validate(
         "weights": {
             "affordability": 18, "transit_access": 32, "light_rail": 25,
             "neighborhood_pref": 28, "gym": 15, "parks": 10, "bedroom_pref": 10,
-            "move_in": 8,
+            "in_unit_laundry": 18, "move_in": 8,
         },
     }
 )
@@ -84,6 +84,14 @@ def test_sqft_floor_penalty_scales():
     micro, reasons = score_listing(_northgate_studio(sqft=225), PREFS)  # far below: ~x0.5
     assert big > near > micro
     assert "space" in reasons
+
+
+def test_in_unit_laundry_bonus():
+    with_wd, reasons = score_listing(_northgate_studio(in_unit_laundry=True), PREFS)
+    without, _ = score_listing(_northgate_studio(in_unit_laundry=False), PREFS)
+    unknown, _ = score_listing(_northgate_studio(), PREFS)  # None -> factor omitted
+    assert with_wd > without
+    assert reasons["in_unit_laundry"]["raw"] == 1.0
 
 
 def test_geo_nearest_station_two_line():
