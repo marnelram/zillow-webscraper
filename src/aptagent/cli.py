@@ -31,8 +31,10 @@ def fetch(
     fixtures: list[Path] = typer.Option(
         None, "--fixtures", "-f", help="Load building payloads from JSON file(s) instead of the network."
     ),
-    max_pages: int = typer.Option(20, help="Max search pages per rent band (live mode)."),
-    max_buildings: int = typer.Option(None, help="Cap building-detail fetches (live mode; protects API credits)."),
+    source: str = typer.Option("apify", "--source", "-s", help="Live source: 'apify' or 'zillow' (direct/ScraperAPI)."),
+    max_pages: int = typer.Option(20, help="Max search pages per rent band (zillow source)."),
+    max_buildings: int = typer.Option(None, help="Cap building-detail fetches (zillow source; protects credits)."),
+    max_items: int = typer.Option(None, help="Cap results (apify source; protects credits)."),
     dry_run: bool = typer.Option(False, help="Normalize only; do not write to the database."),
 ):
     """Fetch listings and upsert them into Postgres."""
@@ -42,6 +44,10 @@ def fetch(
             buildings.extend(load_fixture_buildings(path))
         console.print(f"Loaded [bold]{len(buildings)}[/] building payloads from fixtures.")
         listings = normalize_buildings(buildings)
+    elif source == "apify":
+        from aptagent.fetchers.apify import ApifyFetcher
+        console.print("Fetching live via Apify Zillow actor...")
+        listings = ApifyFetcher().fetch(max_items=max_items)
     else:
         fetcher = ZillowFetcher()
         via = "ScraperAPI" if fetcher.scraperapi_key else "direct (likely blocked)"

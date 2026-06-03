@@ -225,6 +225,18 @@ class ZillowFetcher(Fetcher):
         # anti-bot. Falls back to the (usually blocked) direct request if empty.
         self.scraperapi_key = scraperapi_key if scraperapi_key is not None else get_settings().scraperapi_key
 
+    def build_search_urls(self) -> list[str]:
+        """Zillow search URLs (one per rent band) with the searchQueryState fragment.
+
+        Reused by the Apify fetcher so the managed actor runs the same searches.
+        """
+        urls = []
+        base = f"https://www.zillow.com/{self.city}/rentals/"
+        for min_rent, max_rent in self.rent_intervals:
+            params = self._search_params(min_rent, max_rent, page=1)
+            urls.append(str(httpx.URL(base).copy_merge_params({"searchQueryState": json.dumps(params)})))
+        return urls
+
     def _search_params(self, min_rent: int, max_rent: int, page: int) -> dict:
         return {
             "mapBounds": self.DEFAULT_MAP_BOUNDS,
