@@ -141,3 +141,34 @@ def top_scored(limit: int = 25, min_score: float = 0.0) -> list[ListingRow]:
         rows = session.scalars(stmt).all()
         session.expunge_all()
         return list(rows)
+
+
+def top_with_enrichment(limit: int = 15, min_score: float = 0.0):
+    """Return [(listing, enrichment|None)] for the top listings, detached.
+
+    Used by the digest so it can show deals/vibe alongside the score.
+    """
+    with session_scope() as session:
+        stmt = (
+            select(ListingRow)
+            .where(ListingRow.is_active.is_(True), ListingRow.score.isnot(None))
+            .where(ListingRow.score >= min_score)
+            .order_by(ListingRow.score.desc())
+            .limit(limit)
+        )
+        rows = session.scalars(stmt).all()
+        result = [(r, session.get(Enrichment, r.listing_id)) for r in rows]
+        session.expunge_all()
+        return result
+
+
+def is_new(listing: ListingRow, days: int = 7) -> bool:
+    """True if first seen within the last `days` (best-effort, tz-aware)."""
+    from datetime import datetime, timedelta, timezone
+
+    fs = listing.first_seen
+    if fs is None:
+        return False
+    if fs.tzinfo is None:
+        fs = fs.replace(tzinfo=timezone.utc)
+    return fs >= datetime.now(timezone.utc) - timedelta(days=days)

@@ -20,7 +20,6 @@ from aptagent.fetchers.zillow import (
     load_fixture_buildings,
     normalize_buildings,
 )
-from aptagent.scoring import passes_hard_filters, score_listing
 
 app = typer.Typer(add_completion=False, help="Personal Seattle apartment-hunting agent.")
 console = Console()
@@ -74,22 +73,12 @@ def score(
     top: int = typer.Option(15, help="How many top listings to print."),
 ):
     """Score all active listings against preferences and print the ranked shortlist."""
+    from aptagent import pipeline
+
     prefs = load_preferences(prefs_path)
-    listings = store.all_active_listings()
-    console.print(f"Scoring [bold]{len(listings)}[/] active listings...")
-
-    scored: list[tuple[str, float, dict]] = []
-    rejected = 0
-    for ls in listings:
-        ok, reason = passes_hard_filters(ls, prefs)
-        if not ok:
-            rejected += 1
-            continue
-        s, reasons = score_listing(ls, prefs)
-        scored.append((ls.listing_id, s, reasons))
-
-    store.save_scores(scored)
-    console.print(f"[green]Scored[/] {len(scored)}; rejected {rejected} on hard filters.")
+    console.print("Scoring active listings...")
+    summary = pipeline.score_all(prefs)
+    console.print(f"[green]Scored[/] {summary.scored}; rejected {summary.rejected} on hard filters.")
 
     table = Table(title=f"Top {top} matches")
     table.add_column("Score", justify="right", style="bold cyan")
@@ -154,6 +143,39 @@ def enrich(
             bits.append(f"facing={dd.orientation}")
         console.print(f"  [green]ok[/] {(c.building_name or c.address or c.listing_id)[:40]} {' '.join(bits)}")
     console.print("[green]Enrichment complete.[/] Re-run `aptagent score` to fold in floor/orientation.")
+
+
+@app.command()
+def digest(limit: int = typer.Option(12, help="How many listings to include.")):
+    """Send the current ranked digest to Telegram now."""
+    from aptagent.notify.telegram import send_digest
+
+    sent = send_digest(limit=limit)
+    console.print(f"[green]Sent[/] {sent} Telegram message(s).")
+
+
+@app.command()
+def run(
+    no_fetch: bool = typer.Option(False, help="Skip the live fetch (use what's already stored)."),
+    max_items: int = typer.Option(None, help="Cap Apify results (protects credits)."),
+    enrich_top: int = typer.Option(15, help="Deep-dive this many top listings."),
+    triage_to: int = typer.Option(0, help="If >0, cheap-triage to this many before deep-dive."),
+    no_send: bool = typer.Option(False, help="Skip sending the Telegram digest."),
+    digest_limit: int = typer.Option(12, help="Listings in the digest."),
+):
+    """Full weekly pipeline: fetch -> score -> enrich -> Telegram digest. (Railway cron entrypoint.)"""
+    from aptagent import pipeline
+
+    result = pipeline.run(
+        do_fetch=not no_fetch,
+        max_items=max_items,
+        enrich_top=enrich_top,
+        triage_to=triage_to,
+        do_send=not no_send,
+        digest_limit=digest_limit,
+        log=lambda m: console.print(m),
+    )
+    console.print(f"[bold green]Pipeline done.[/] {result}")
 
 
 @app.command()

@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+*.pyc
+.env
+agent-memory/
+data/cache/
+data/interim/
+.claude/
+.vscode/
+notebooks/
+docs/
+tests/

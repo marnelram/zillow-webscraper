@@ -1,28 +1,71 @@
-# Zillow Web Scraper
-This is a Python script that allows you to scrape data from Zillow, a popular online real estate marketplace, and save it to a CSV file. You can use this data for various purposes such as analysis, research, and visualization.
+# aptagent — personal apartment-hunting agent (Seattle)
 
-## Prerequisites
-Python 3.x
-Requests
-BeautifulSoup4
-Pandas
+Fetches rental listings, scores them against your personal preferences, enriches
+the shortlist with an LLM, and pushes a weekly ranked digest to Telegram.
+Designed to run unattended on a weekly cron (Railway).
+
+> Revamp of an earlier Zillow scraper. The legacy `src/web_scraping`,
+> `src/processing`, and `src/zillow_scraper.py` modules are superseded by the
+> `src/aptagent` package and slated for removal.
+
+## How it works
+
+A cost-tiered funnel:
+
+1. **Fetch** — listings via a pluggable `Fetcher` (Apify Zillow actor by default;
+   direct/ScraperAPI and fixtures also supported). Normalized into a common shape.
+2. **Store** — Neon Postgres (SQLAlchemy + Alembic), tracking first/last seen and
+   price history so "new this week" and price drops work.
+3. **Score** — a transparent 0–100 rule-based score with a per-factor reasons
+   breakdown: affordability, transit, light rail, preferred/avoided neighborhoods,
+   grocery proximity (OpenStreetMap), parks, gym, Census neighborhood feel,
+   bedroom fit, move-in window. Tuned in `preferences.yaml`.
+4. **Enrich** — OpenRouter funnel over the top listings: a cheap-model triage then
+   a strong-model deep dive for deals/concessions, community events, vibe, and
+   best-effort floor/orientation. Cached so reruns don't re-pay.
+5. **Notify** — a weekly Telegram digest of the top matches, flagged "new" when new.
+
+## Setup
+
+Requires [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync --extra dev
+cp .env.example .env   # then fill in the values below
+uv run alembic upgrade head
+```
+
+### Environment (`.env`)
+
+| Var | Purpose |
+| --- | --- |
+| `NEON_DATABASE_URL` | Neon Postgres connection string |
+| `APIFY_TOKEN` | Apify API token (runs the Zillow scraper actor) |
+| `APIFY_ZILLOW_ACTOR` | actor id (default `maxcopell~zillow-scraper`) |
+| `OPENROUTER_API_KEY` | OpenRouter key for LLM enrichment |
+| `APTAGENT_MODEL_CHEAP` / `APTAGENT_MODEL_STRONG` | triage / deep-dive models |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | digest delivery |
+| `CENSUS_API_KEY` | (optional) unlocks the neighborhood-feel factor |
+| `SCRAPERAPI_KEY` | (optional) alternative unblocker for the direct Zillow fetcher |
 
 ## Usage
-1. Clone this repository to your local machine.
-2. Install the required Python packages by running pip install -r requirements.txt in your terminal or command prompt.
-3. Open zillow_scraper.py in your preferred code editor and modify the URL and other settings to suit your needs.
-4. Run zillow_scraper.py by typing python zillow_scraper.py in your terminal or command prompt.
-5. Wait for the script to finish scraping the data from Zillow.
-6. Find the CSV file containing the scraped data in the output folder.
 
-## Configuration
-You can configure the following settings in `zillow_scraper.py`:
+```bash
+uv run aptagent fetch --source apify --max-items 60   # pull live listings
+uv run aptagent fetch --fixtures data/raw/raw_listings_2.json  # or from saved payloads
+uv run aptagent score --top 15                        # rank + explain
+uv run aptagent enrich --top 15 --triage-to 8         # LLM deep-dive the shortlist
+uv run aptagent digest --limit 12                     # send digest to Telegram
+uv run aptagent run                                   # full weekly pipeline (cron entrypoint)
+uv run pytest                                         # tests (no network/DB needed)
+```
 
-- `BASE_URL`: The base URL of the Zillow website. You can change this if you want to scrape data from a different Zillow website, e.g., Zillow Canada.
-- `SEARCH_URL`: The search URL for the Zillow search query. You can change this to customize your search query, e.g., by changing the location or property type.
-- `HEADERS`: The HTTP headers used by the scraper. You can modify this to mimic a different user agent or to include other custom headers.
-- `MAX_PAGES`: The maximum number of pages to scrape. You can change this to scrape more or fewer pages, depending on your needs.
-- `DELAY`: The delay between requests, in seconds. You can change this to avoid overloading the Zillow servers and captchas.
+## Deploy (Railway, weekly cron)
 
-## Limitations
-Please note that web scraping can be against the terms of service of some websites and may be illegal in some jurisdictions. Use this script at your own risk and responsibility. Additionally, Zillow may change their website structure or anti-scraping measures at any time, which could render this script obsolete.
+1. Create a Railway project from this repo (it builds via the `Dockerfile`).
+2. Add the env vars above in the service's **Variables**.
+3. Set the service **Cron Schedule** (e.g. `0 16 * * 1` = Mondays 09:00 PT) — the
+   container runs `aptagent run` once and exits; the cron re-invokes weekly.
+
+Neon + OpenRouter + Apify + Telegram all work from Railway's datacenter IP
+(unlike direct scraping, which Zillow blocks).
