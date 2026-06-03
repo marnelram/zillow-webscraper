@@ -123,8 +123,14 @@ def enriched_ids() -> set[str]:
         return set(session.scalars(select(Enrichment.listing_id)).all())
 
 
-def save_enrichment(listing_id: str, dd, model: str) -> None:
-    """Upsert a DeepDive result; also copy inferred floor/orientation onto the listing."""
+def save_enrichment(listing_id: str, dd, model: str, apply_unit_fields: bool = True) -> None:
+    """Upsert a DeepDive result for a listing.
+
+    Building-level fields (deals/concessions/events/vibe) are always stored.
+    Unit-level inferred floor/orientation are only propagated onto the listing
+    when ``apply_unit_fields`` is True — set False for sibling units sharing a
+    building-level enrichment, since those are unit-specific.
+    """
     with session_scope() as session:
         row = session.get(Enrichment, listing_id)
         if row is None:
@@ -134,16 +140,33 @@ def save_enrichment(listing_id: str, dd, model: str) -> None:
         row.concessions = dd.concessions
         row.community_events = dd.community_events
         row.vibe_summary = dd.vibe_summary
-        row.inferred_floor = dd.floor
-        row.inferred_orientation = dd.orientation
+        row.inferred_floor = dd.floor if apply_unit_fields else None
+        row.inferred_orientation = dd.orientation if apply_unit_fields else None
         row.model_used = model
-        # Propagate inferred floor/orientation so those scoring factors can fire.
-        listing = session.get(ListingRow, listing_id)
-        if listing is not None:
-            if dd.floor is not None and listing.floor is None:
-                listing.floor = dd.floor
-            if dd.orientation is not None and listing.orientation is None:
-                listing.orientation = dd.orientation
+        if apply_unit_fields:
+            listing = session.get(ListingRow, listing_id)
+            if listing is not None:
+                if dd.floor is not None and listing.floor is None:
+                    listing.floor = dd.floor
+                if dd.orientation is not None and listing.orientation is None:
+                    listing.orientation = dd.orientation
+
+
+def update_listing_detail(listing_id: str, description: str | None, amenities: list[str] | None) -> None:
+    """Persist richer description/amenities fetched from a listing's detail page."""
+    with session_scope() as session:
+        row = session.get(ListingRow, listing_id)
+        if row is None:
+            return
+        if description:
+            row.description = description
+        if amenities:
+            existing = {a.lower() for a in (row.amenities or [])}
+            merged = list(row.amenities or [])
+            for a in amenities:
+                if a.lower() not in existing:
+                    merged.append(a)
+            row.amenities = merged
 
 
 def top_scored(limit: int = 25, min_score: float = 0.0) -> list[ListingRow]:

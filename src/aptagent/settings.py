@@ -36,9 +36,10 @@ class Settings(BaseSettings):
     # ScraperAPI (unblocks Zillow's anti-bot for the live fetcher)
     scraperapi_key: str = ""
 
-    # Apify (managed Zillow scraper actor — handles anti-bot/proxies)
+    # Apify (managed Zillow scraper actors — handle anti-bot/proxies)
     apify_token: str = ""
     apify_zillow_actor: str = "maxcopell~zillow-scraper"
+    apify_detail_actor: str = "maxcopell~zillow-detail-scraper"
 
     @property
     def sqlalchemy_url(self) -> str:

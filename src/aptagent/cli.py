@@ -105,11 +105,12 @@ def score(
 @app.command()
 def enrich(
     top: int = typer.Option(20, help="Rule-scored listings to consider for enrichment."),
-    triage_to: int = typer.Option(0, help="If >0, cheap-model triage cuts to this many before deep-dive."),
+    triage_to: int = typer.Option(0, help="If >0, cheap-model triage cuts to this many buildings before deep-dive."),
+    detail: bool = typer.Option(True, help="Fetch each building's Zillow detail page for richer description/amenities."),
     force: bool = typer.Option(False, help="Re-enrich even if a cached enrichment exists."),
 ):
-    """LLM funnel: (optional) cheap triage of the top listings, then strong-model deep-dive."""
-    from aptagent.enrich import llm
+    """LLM funnel: group top listings by building, optionally fetch detail pages, then deep-dive."""
+    from aptagent.enrich import funnel
 
     candidates = store.top_scored(limit=top)
     if not force:
@@ -119,30 +120,10 @@ def enrich(
         console.print("Nothing to enrich (all cached; use --force to redo).")
         return
 
-    if triage_to and len(candidates) > triage_to:
-        console.print(f"Triaging {len(candidates)} via {llm.get_settings().aptagent_model_cheap}...")
-        scores = llm.triage_scores(candidates)
-        candidates.sort(key=lambda c: scores.get(c.listing_id, 0.0), reverse=True)
-        candidates = candidates[:triage_to]
-
-    model = llm.get_settings().aptagent_model_strong
-    console.print(f"Deep-diving [bold]{len(candidates)}[/] listings via {model}...")
-    for c in candidates:
-        try:
-            dd = llm.deep_dive(c)
-        except Exception as e:  # noqa: BLE001 — keep going on a single failure
-            console.print(f"  [red]skip[/] {c.listing_id}: {type(e).__name__}: {str(e)[:80]}")
-            continue
-        store.save_enrichment(c.listing_id, dd, model)
-        bits = []
-        if dd.deals:
-            bits.append(f"deals={dd.deals}")
-        if dd.floor is not None:
-            bits.append(f"floor={dd.floor}")
-        if dd.orientation:
-            bits.append(f"facing={dd.orientation}")
-        console.print(f"  [green]ok[/] {(c.building_name or c.address or c.listing_id)[:40]} {' '.join(bits)}")
-    console.print("[green]Enrichment complete.[/] Re-run `aptagent score` to fold in floor/orientation.")
+    result = funnel.run_enrichment(
+        candidates, triage_to=triage_to, fetch_detail=detail, log=lambda m: console.print(m)
+    )
+    console.print(f"[green]Enrichment complete.[/] {result}  Re-run `aptagent score` to fold in floor/orientation.")
 
 
 @app.command()
@@ -158,8 +139,9 @@ def digest(limit: int = typer.Option(12, help="How many listings to include.")):
 def run(
     no_fetch: bool = typer.Option(False, help="Skip the live fetch (use what's already stored)."),
     max_items: int = typer.Option(None, help="Cap Apify results (protects credits)."),
-    enrich_top: int = typer.Option(15, help="Deep-dive this many top listings."),
-    triage_to: int = typer.Option(0, help="If >0, cheap-triage to this many before deep-dive."),
+    enrich_top: int = typer.Option(15, help="Consider this many top listings for enrichment."),
+    triage_to: int = typer.Option(0, help="If >0, cheap-triage to this many buildings before deep-dive."),
+    no_detail: bool = typer.Option(False, help="Skip detail-page fetch (cheaper; thinner enrichment)."),
     no_send: bool = typer.Option(False, help="Skip sending the Telegram digest."),
     digest_limit: int = typer.Option(12, help="Listings in the digest."),
 ):
@@ -171,6 +153,7 @@ def run(
         max_items=max_items,
         enrich_top=enrich_top,
         triage_to=triage_to,
+        fetch_detail=not no_detail,
         do_send=not no_send,
         digest_limit=digest_limit,
         log=lambda m: console.print(m),

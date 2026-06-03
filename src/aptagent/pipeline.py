@@ -42,6 +42,7 @@ def run(
     deactivate_missing: bool = True,
     enrich_top: int = 15,
     triage_to: int = 0,
+    fetch_detail: bool = True,
     do_send: bool = True,
     digest_limit: int = 12,
     log=print,
@@ -71,24 +72,14 @@ def run(
     log(f"Scored {summary.scored} (rejected {summary.rejected}).")
 
     if enrich_top:
-        from aptagent.enrich import llm
+        from aptagent.enrich import funnel
 
         candidates = [c for c in store.top_scored(limit=enrich_top) if c.listing_id not in store.enriched_ids()]
-        if triage_to and len(candidates) > triage_to:
-            scores = llm.triage_scores(candidates)
-            candidates.sort(key=lambda c: scores.get(c.listing_id, 0.0), reverse=True)
-            candidates = candidates[:triage_to]
-        enriched = 0
-        for c in candidates:
-            try:
-                store.save_enrichment(c.listing_id, llm.deep_dive(c), llm.get_settings().aptagent_model_strong)
-                enriched += 1
-            except Exception as e:  # noqa: BLE001
-                log(f"  enrich skip {c.listing_id}: {type(e).__name__}")
-        result["enriched"] = enriched
-        if enriched:
+        enr = funnel.run_enrichment(candidates, triage_to=triage_to, fetch_detail=fetch_detail, log=log)
+        result.update(enr)
+        if enr["enriched"]:
             score_all()  # fold inferred floor/orientation into scores
-        log(f"Enriched {enriched} listings.")
+        log(f"Enriched {enr['enriched']} buildings ({enr['detail_fetched']} detail pages).")
 
     if do_send:
         from aptagent.notify.telegram import send_digest
