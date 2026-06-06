@@ -83,6 +83,13 @@ def run_enrichment(
             except Exception as e:  # noqa: BLE001
                 log(f"  detail skip {rep.listing_id}: {type(e).__name__}")
 
+        # Fall back to the search card's own photo for vision when no detail photos
+        # (e.g. detail fetch disabled or Apify budget exhausted).
+        if not photos:
+            img = (getattr(rep, "raw", None) or {}).get("imgSrc")
+            if isinstance(img, str) and img.startswith("http"):
+                photos = [img]
+
         try:
             dd = llm.deep_dive(rep, photos=photos, web_search=web_search)
         except Exception as e:  # noqa: BLE001
